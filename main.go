@@ -16,6 +16,41 @@ type coreData struct {
 	xi        [40]int
 }
 
+type rowCriteria struct {
+	r int
+	c int
+}
+
+// Evaluation Criteria
+
+func criteria(v int, c int) bool {
+	if c == 0 {
+		return v == 0
+	}
+
+	if c == 1 {
+		return v == 1
+	}
+
+	if c == 2 {
+		return v == 2
+	}
+
+	if c == 3 {
+		return v == 0 || v == 1
+	}
+
+	if c == 4 {
+		return v == 0 || v == 2
+	}
+
+	if c == 5 {
+		return v == 1 || v == 2
+	}
+
+	return false
+}
+
 var data []coreData
 
 // Read in the raw data, and then classify numerica data into three values also
@@ -100,8 +135,44 @@ func partitionByDataset(dataSetId int) []coreData {
 	return r
 }
 
+// each row has an associated criteria
+func partitionByRowCriteria(d []coreData, rc []rowCriteria) []coreData {
+	var r []coreData
+
+	// for each data row see that it matches each row criteria
+	// and if it does append to output
+	for _, each := range d {
+		var b = true
+		// check that each row criteria value matches
+		for _, k := range rc {
+			if !(criteria(each.xi[k.r], k.c)) {
+				b = false
+			}
+		}
+
+		if b {
+			r = append(r, each)
+		}
+	}
+
+	return r
+}
+
 func main() {
 	readData()
 	d2 := partitionByDataset(2)
-	outputData(d2)
+	//outputData(d2)
+
+	var rc, rc1 rowCriteria
+	rc.c = 0
+	rc.r = 0
+	rc1.r = 39
+	rc1.c = 1
+
+	var rcData []rowCriteria
+	rcData = append(rcData, rc)
+	rcData = append(rcData, rc1)
+
+	t2 := partitionByRowCriteria(d2, rcData)
+	outputData(t2)
 }
