@@ -1,4 +1,5 @@
 // innopsi project main.go
+// using https://godoc.org/github.com/montanaflynn/stats
 package main
 
 import (
@@ -6,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/montanaflynn/stats"
 )
 
 type coreData struct {
@@ -19,6 +22,15 @@ type coreData struct {
 type rowCriteria struct {
 	r int
 	c int
+}
+
+type scoreResult struct {
+	dataSetId int
+	score     float64
+	d         []coreData
+	rc        []rowCriteria
+	t0        []coreData
+	t1        []coreData
 }
 
 // Evaluation Criteria
@@ -51,7 +63,11 @@ func criteria(v int, c int) bool {
 	return false
 }
 
-var data []coreData
+var (
+	data          []coreData
+	threshhold    float64 = 0.6
+	rowThreshhold int     = 6
+)
 
 // Read in the raw data, and then classify numerica data into three values also
 func readData() {
@@ -122,6 +138,22 @@ func outputData(d []coreData) {
 	}
 }
 
+func outputScore(s scoreResult) {
+	//b, _ := json.Marshal(s)
+	fmt.Print("{")
+	fmt.Printf("score: %f, ", s.score)
+	fmt.Print("id:[ ")
+	// Now array of t1 rows
+	for i := 0; i < len(s.t1); i++ {
+		fmt.Printf("%d ", s.t1[i].id)
+		if i != len(s.t1)-1 {
+			fmt.Print(",")
+		}
+	}
+	fmt.Print("]")
+	fmt.Println("}")
+}
+
 // Get a partition of the dataset
 func partitionByDataset(dataSetId int) []coreData {
 	var r []coreData
@@ -158,6 +190,56 @@ func partitionByRowCriteria(d []coreData, rc []rowCriteria) []coreData {
 	return r
 }
 
+func evalScore(d []coreData, rc []rowCriteria) scoreResult {
+	var s scoreResult
+	s.rc = rc
+	s.d = d
+	s.score = 0
+
+	// check for minimum row threshhold
+	if len(d) <= rowThreshhold {
+		return s
+	}
+
+	var t0 []coreData
+	var t1 []coreData
+	var t0s []float64
+	var t1s []float64
+
+	// Partition the data into treatment 0 and treatment 1
+	// and save the score for evaluation
+	for _, each := range d {
+		if each.treatment == 0 {
+			t0 = append(t0, each)
+			t0s = append(t0s, each.y)
+		} else {
+			t1 = append(t1, each)
+			t1s = append(t1s, each.y)
+		}
+	}
+
+	if len(t0) <= rowThreshhold/2 || len(t1) <= rowThreshhold/2 {
+		return s
+	}
+
+	s.t0 = t0
+	s.t1 = t1
+
+	// then calculate the median, also experiment with average
+	var mean0, _ = stats.Mean(t0s)
+	var mean1, _ = stats.Mean(t1s)
+
+	// subtract the two t0-t1, we want t1 to be smaller
+	var meanValue = mean0 - mean1
+	if meanValue < 0.0 {
+		meanValue = 0.0
+	}
+
+	s.score = meanValue
+
+	return s
+}
+
 func main() {
 	readData()
 	d2 := partitionByDataset(2)
@@ -175,4 +257,7 @@ func main() {
 
 	t2 := partitionByRowCriteria(d2, rcData)
 	outputData(t2)
+
+	s2 := evalScore(t2, rcData)
+	outputScore(s2)
 }
