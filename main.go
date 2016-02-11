@@ -51,12 +51,41 @@ func readData() {
 			data[count].treatment, _ = strconv.Atoi(each[2])
 			data[count].y, _ = strconv.ParseFloat(each[3], 10)
 
+			// Get the integer values
+			for i := 0; i < 20; i++ {
+				// Offset of 4 into values
+				data[count].xi[i], _ = strconv.Atoi(each[i+4])
+			}
+
+			// Get and convert the numeric values to three levels
+			for i := 21; i < 40; i++ {
+				// Offset of 4 into values
+				t, _ := strconv.ParseFloat(each[i+4], 10)
+				if t < 33.3 {
+					data[count].xi[i] = 0
+				} else if t >= 33.3 && t < 66.6 {
+					data[count].xi[i] = 1
+				} else {
+					data[count].xi[i] = 2
+				}
+			}
 		}
 
 		count += 1
 	}
 }
 
+func outputData() {
+	for _, each := range data {
+		fmt.Printf("%d, %d, %d, %f ", each.dataset, each.id, each.treatment, each.y)
+		for _, x := range each.xi {
+			fmt.Printf("%d, ", x)
+		}
+		fmt.Println()
+	}
+}
+
 func main() {
 	readData()
+	outputData()
 }
