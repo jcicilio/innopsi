@@ -18,6 +18,7 @@ type coreData struct {
 
 var data []coreData
 
+// Read in the raw data, and then classify numerica data into three values also
 func readData() {
 	csvfile, err := os.Open("./data/InnoCentive_9933623_Training_Data.csv")
 	if err != nil {
@@ -75,8 +76,9 @@ func readData() {
 	}
 }
 
-func outputData() {
-	for _, each := range data {
+// Output a slice of data
+func outputData(d []coreData) {
+	for _, each := range d {
 		fmt.Printf("%d, %d, %d, %f ", each.dataset, each.id, each.treatment, each.y)
 		for _, x := range each.xi {
 			fmt.Printf("%d, ", x)
@@ -85,7 +87,21 @@ func outputData() {
 	}
 }
 
+// Get a partition of the dataset
+func partitionByDataset(dataSetId int) []coreData {
+	var r []coreData
+
+	for i := 0; i < len(data); i++ {
+		if data[i].dataset == dataSetId {
+			r = append(r, data[i])
+		}
+	}
+
+	return r
+}
+
 func main() {
 	readData()
-	outputData()
+	d2 := partitionByDataset(2)
+	outputData(d2)
 }
