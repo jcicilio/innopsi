@@ -65,7 +65,7 @@ func criteria(v int, c int) bool {
 }
 
 const subjects int = 240
-const datasets int = 4
+const datasets int = 1200
 const rowThreshhold int = 10
 
 var (
@@ -90,7 +90,7 @@ func (s scoreResults) Less(i, j int) bool {
 
 // Read in the raw data, and then classify numerica data into three values also
 func readData() {
-	csvfile, err := os.Open("./data/InnoCentive_9933623_Training_Data.csv")
+	csvfile, err := os.Open("./data/InnoCentive_9933623_Data.csv")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -186,6 +186,15 @@ func negativeScoreCount(s []scoreResult) int {
 	}
 
 	return count
+}
+
+func outputRowCriteria(c [][]rowCriteria) {
+	for _, each := range c {
+		for _, v := range each {
+			fmt.Printf("%d, %d, ", v.r, v.c)
+		}
+		fmt.Println()
+	}
 }
 
 // Get a partition of the dataset
@@ -431,7 +440,14 @@ func main() {
 	readData()
 
 	var scores []scoreResult
+
+	var level1 = fullOneLevel()
+	//outputRowCriteria(level1)
+	fmt.Printf("levels count: %d \n", len(level1))
+
 	levels = fullTwoLevel()
+	//outputRowCriteria(levels)
+	fmt.Printf("levels count: %d \n", len(levels))
 
 	for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
 		s := levelEval(dataSetId)
