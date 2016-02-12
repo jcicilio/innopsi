@@ -67,7 +67,7 @@ func criteria(v int, c int) bool {
 var (
 	data          []coreData
 	threshhold    float64 = 0.6
-	rowThreshhold int     = 60
+	rowThreshhold int     = 74
 	levels        [][]rowCriteria
 )
 
@@ -371,40 +371,14 @@ func main() {
 	var scores []scoreResult
 	levels = fullTwoLevel()
 
-	for dataSetId := 1; dataSetId < 1201; dataSetId++ {
+	for dataSetId := 1; dataSetId < 5; dataSetId++ {
 		s := levelEval(dataSetId)
 		sort.Sort(scoreResults(s))
 		if len(s) > 0 {
 			scores = append(scores, s[0])
+			fmt.Printf("%d, %f \n", s[0].dataSetId, s[0].score)
 		}
 	}
 
-	//	var dataSetId = 3
-
-	//	s := firstLevelEval(dataSetId)
-	//	sort.Sort(scoreResults(s))
-	//	outputScores(s)
-
-	//	fmt.Printf("Negative Score Count: %d", negativeScoreCount(s))
-
-	// Count negative values of score
-
-	//	d2 := partitionByDataset(dataSetId)
-	//	//outputData(d2)
-
-	//	var rc, rc1 rowCriteria
-	//	rc.c = 0
-	//	rc.r = 0
-	//	rc1.r = 39
-	//	rc1.c = 1
-
-	//	var rcData []rowCriteria
-	//	rcData = append(rcData, rc)
-	//	rcData = append(rcData, rc1)
-
-	//	t2 := partitionByRowCriteria(d2, rcData)
-	//	outputData(t2)
-
-	//	s2 := evalScore(t2, rcData, dataSetId)
-	//	outputScore(s2)
+	outputScores(scores)
 }
