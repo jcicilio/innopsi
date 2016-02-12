@@ -68,6 +68,7 @@ var (
 	data          []coreData
 	threshhold    float64 = 0.6
 	rowThreshhold int     = 60
+	levels        [][]rowCriteria
 )
 
 // Sorting interface implementation for scoreResults
@@ -344,7 +345,7 @@ func fullTwoLevel() [][]rowCriteria {
 	return r
 }
 
-func firstLevelEval(dataSetId int) []scoreResult {
+func levelEval(dataSetId int) []scoreResult {
 	var (
 		r []scoreResult
 	)
@@ -352,8 +353,8 @@ func firstLevelEval(dataSetId int) []scoreResult {
 	// Get the partition to work on
 	d := partitionByDataset(dataSetId)
 
-	//src := fullOneLevel()
-	src := fullTwoLevel()
+	// globally set
+	src := levels
 
 	for _, src1 := range src {
 		t := partitionByRowCriteria(d, src1)
@@ -368,9 +369,10 @@ func main() {
 	readData()
 
 	var scores []scoreResult
+	levels = fullTwoLevel()
 
 	for dataSetId := 1; dataSetId < 1201; dataSetId++ {
-		s := firstLevelEval(dataSetId)
+		s := levelEval(dataSetId)
 		sort.Sort(scoreResults(s))
 		if len(s) > 0 {
 			scores = append(scores, s[0])
