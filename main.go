@@ -64,11 +64,13 @@ func criteria(v int, c int) bool {
 	return false
 }
 
+const subjects int = 240
+const datasets int = 4
+const rowThreshhold int = 10
+
 var (
-	data          []coreData
-	threshhold    float64 = 0.6
-	rowThreshhold int     = 74
-	levels        [][]rowCriteria
+	data   []coreData
+	levels [][]rowCriteria
 )
 
 // Sorting interface implementation for scoreResults
@@ -156,20 +158,7 @@ func outputData(d []coreData) {
 }
 
 func outputScore(s scoreResult) {
-	//	// Todo: put this in string builder
-	//	//b, _ := json.Marshal(s)
-	//	fmt.Print("{")
-	//	fmt.Printf("score: %f, ", s.score)
-	//	fmt.Print("id:[ ")
-	//	// Now array of t1 rows
-	//	for i := 0; i < len(s.t1); i++ {
-	//		fmt.Printf("%d ", s.t1[i].id)
-	//		if i != len(s.t1)-1 {
-	//			fmt.Print(",")
-	//		}
-	//	}
-	//	fmt.Print("]")
-	//	fmt.Println("}\n")
+
 	if s.score >= 0.0 {
 		return
 	}
@@ -235,13 +224,83 @@ func partitionByRowCriteria(d []coreData, rc []rowCriteria) []coreData {
 	return r
 }
 
-func outputResults([]scoreResult) {
+func outputResults(s []scoreResult) {
+	// Add one column for the id
+	var dataSet [subjects][datasets + 1]int
+
 	// Write headings, id, dataset_1 through n
+	// Write ids
+	for row := 0; row < subjects; row++ {
+		dataSet[row][0] = row + 1
+	}
+
 	// With the top score per dataset
-	// build and array of 240 rows and 1201 columns (1200 data, 1 id)
+	// build and array of subject rows and dataset + 1 columns (1200 data, 1 id)
 	// output the array
+	for row := 0; row < subjects; row++ {
+		for col := 0; col < datasets; col++ {
+			// data is organized one dataset per column
+			pv := resultsArray(s[col].t1)
+			// with the scores for individuals
+			for sub := 0; sub < subjects; sub++ {
+				dataSet[sub][col+1] = pv[sub]
+			}
+		}
+	}
+
+	// Output to file
+	f, _ := os.Create("/temp/output.csv")
+	defer f.Close()
+
+	// Write headings, id, dataset_1 through n
+	for h := 0; h <= datasets; h++ {
+		if h == 0 {
+			f.WriteString("\"id\",")
+		} else {
+			var name = fmt.Sprintf("\"dataset_%d\"", h)
+			f.WriteString(name)
+			if h < datasets {
+				f.WriteString(",")
+			}
+		}
+	}
+
+	f.WriteString("\r\n")
+
+	// Write data
+	for row := 0; row < subjects; row++ {
+		for col := 0; col <= datasets; col++ {
+
+			f.WriteString(strconv.Itoa(dataSet[row][col]))
+			if col != datasets {
+				f.WriteString(",")
+			}
+		}
+		f.WriteString("\r\n")
+	}
+
 }
 
+// Convert a sparse list of subject Id in a t1 array into a binary vector
+// of 0 / 1 for each subject that matches
+func resultsArray(positive []coreData) []int {
+	var r []int
+
+	// first add all zero values
+	for row := 0; row < subjects; row++ {
+		r = append(r, 0)
+	}
+
+	// create row vector
+	for _, each := range positive {
+		r[each.id-1] = 1
+	}
+
+	return r
+}
+
+// for a partition in the set of data, calculate the effective treatement
+// score using (mean t1 - mean t0) / population standard deviation
 func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	var s scoreResult
 	s.rc = rc
@@ -295,6 +354,7 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	return s
 }
 
+// sample criteria selection distributions
 func fullOneLevel() [][]rowCriteria {
 	var r [][]rowCriteria
 
@@ -313,6 +373,7 @@ func fullOneLevel() [][]rowCriteria {
 	return r
 }
 
+// sample criteria selection distributions
 func fullTwoLevel() [][]rowCriteria {
 	var r [][]rowCriteria
 
@@ -345,6 +406,7 @@ func fullTwoLevel() [][]rowCriteria {
 	return r
 }
 
+// run the testing
 func levelEval(dataSetId int) []scoreResult {
 	var (
 		r []scoreResult
@@ -371,14 +433,16 @@ func main() {
 	var scores []scoreResult
 	levels = fullTwoLevel()
 
-	for dataSetId := 1; dataSetId < 5; dataSetId++ {
+	for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
 		s := levelEval(dataSetId)
 		sort.Sort(scoreResults(s))
 		if len(s) > 0 {
+			// pick the top score
 			scores = append(scores, s[0])
 			fmt.Printf("%d, %f \n", s[0].dataSetId, s[0].score)
 		}
 	}
 
 	outputScores(scores)
+	outputResults(scores)
 }
