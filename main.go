@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 
 	"github.com/montanaflynn/stats"
@@ -68,6 +69,21 @@ var (
 	threshhold    float64 = 0.6
 	rowThreshhold int     = 6
 )
+
+// Sorting interface implementation for scoreResults
+type scoreResults []scoreResult
+
+func (s scoreResults) Len() int {
+	return len(s)
+}
+
+func (s scoreResults) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s scoreResults) Less(i, j int) bool {
+	return s[i].score < s[j].score
+}
 
 // Read in the raw data, and then classify numerica data into three values also
 func readData() {
@@ -153,6 +169,10 @@ func outputScore(s scoreResult) {
 	//	}
 	//	fmt.Print("]")
 	//	fmt.Println("}\n")
+	if s.score >= 0.0 {
+		return
+	}
+
 	fmt.Printf("%d, %d, %f \n", s.rc[0].r, s.rc[0].c, s.score)
 }
 
@@ -160,6 +180,17 @@ func outputScores(s []scoreResult) {
 	for _, each := range s {
 		outputScore(each)
 	}
+}
+
+func negativeScoreCount(s []scoreResult) int {
+	var count = 0
+	for _, each := range s {
+		if each.score < 0.0 {
+			count += 1
+		}
+	}
+
+	return count
 }
 
 // Get a partition of the dataset
@@ -241,7 +272,7 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	// then calculate the median, also experiment with average
 	var mean0, _ = stats.Mean(t0s)
 	var mean1, _ = stats.Mean(t1s)
-	var sd, _ = stats.StandardDeviationPopulation(allTs)
+	var sd, _ = stats.StandardDeviation(allTs)
 
 	// subtract the two t0-t1, we want t1 to be smaller
 	var meanValue = mean0 - mean1
@@ -251,42 +282,96 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	return s
 }
 
-func firstLevelEval(dataSetId int) []scoreResult {
-	var (
-		r  []scoreResult
-		rc rowCriteria
-	)
+func fullOneLevel() [][]rowCriteria {
+	var r [][]rowCriteria
 
-	// Get the partition to work on
-	d := partitionByDataset(dataSetId)
-
-	// for each data column
 	for x := 0; x < 40; x++ {
 		// for each criteria
 		for cr := 0; cr < 6; cr++ {
-			// evaluate the score
-			var rcData []rowCriteria
-			rc.r = x
-			rc.c = cr
-			rcData = append(rcData, rc)
-
-			t := partitionByRowCriteria(d, rcData)
-			s := evalScore(t, rcData, dataSetId)
-
-			r = append(r, s)
+			var v []rowCriteria
+			var k rowCriteria
+			k.r = x
+			k.c = cr
+			v = append(v, k)
+			r = append(r, v)
 		}
 	}
 
 	return r
 }
 
+func fullTwoLevel() [][]rowCriteria {
+	var r [][]rowCriteria
+
+	for x := 0; x < 40; x++ {
+		for x1 := 0; x1 < 40; x1++ {
+
+			// for each criteria
+			for cr := 0; cr < 6; cr++ {
+				for cr1 := 0; cr1 < 6; cr1++ {
+					var v []rowCriteria
+					var k rowCriteria
+					k.r = x
+					k.c = cr
+					v = append(v, k)
+					r = append(r, v)
+				}
+			}
+		}
+	}
+
+	return r
+}
+
+func firstLevelEval(dataSetId int) []scoreResult {
+	var (
+		r []scoreResult
+		//rc rowCriteria
+	)
+
+	// Get the partition to work on
+	d := partitionByDataset(dataSetId)
+
+	src := fullOneLevel()
+
+	for _, src1 := range src {
+		t := partitionByRowCriteria(d, src1)
+		s := evalScore(t, src1, dataSetId)
+		r = append(r, s)
+	}
+
+	//	// for each data column
+	//	for x := 0; x < 40; x++ {
+	//		// for each criteria
+	//		for cr := 0; cr < 6; cr++ {
+	//			// evaluate the score
+	//			var rcData []rowCriteria
+	//			rc.r = x
+	//			rc.c = cr
+	//			rcData = append(rcData, rc)
+
+	//			t := partitionByRowCriteria(d, rcData)
+	//			s := evalScore(t, rcData, dataSetId)
+
+	//			r = append(r, s)
+	//		}
+	//	}
+
+	return r
+}
+
 func main() {
-	var dataSetId = 2
+	var dataSetId = 4
 
 	readData()
 	s := firstLevelEval(dataSetId)
-
+	sort.Sort(scoreResults(s))
 	outputScores(s)
+
+	fmt.Printf("Negative Score Count: %d", negativeScoreCount(s))
+
+	// Count negative values of score
+
 	//	d2 := partitionByDataset(dataSetId)
 	//	//outputData(d2)
 
