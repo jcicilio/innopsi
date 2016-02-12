@@ -67,7 +67,7 @@ func criteria(v int, c int) bool {
 var (
 	data          []coreData
 	threshhold    float64 = 0.6
-	rowThreshhold int     = 6
+	rowThreshhold int     = 60
 )
 
 // Sorting interface implementation for scoreResults
@@ -173,7 +173,12 @@ func outputScore(s scoreResult) {
 		return
 	}
 
-	fmt.Printf("%d, %d, %f \n", s.rc[0].r, s.rc[0].c, s.score)
+	fmt.Printf("%d, %f, ", s.dataSetId, s.score)
+	for _, each := range s.rc {
+		fmt.Printf("x=%d, c=%d, ", each.r+1, each.c)
+	}
+	fmt.Println()
+
 }
 
 func outputScores(s []scoreResult) {
@@ -229,6 +234,13 @@ func partitionByRowCriteria(d []coreData, rc []rowCriteria) []coreData {
 	return r
 }
 
+func outputResults([]scoreResult) {
+	// Write headings, id, dataset_1 through n
+	// With the top score per dataset
+	// build and array of 240 rows and 1201 columns (1200 data, 1 id)
+	// output the array
+}
+
 func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	var s scoreResult
 	s.rc = rc
@@ -272,10 +284,10 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	// then calculate the median, also experiment with average
 	var mean0, _ = stats.Mean(t0s)
 	var mean1, _ = stats.Mean(t1s)
-	var sd, _ = stats.StandardDeviation(allTs)
+	var sd, _ = stats.StandardDeviationPopulation(allTs)
 
 	// subtract the two t0-t1, we want t1 to be smaller
-	var meanValue = mean0 - mean1
+	var meanValue = mean1 - mean0
 
 	s.score = meanValue / sd
 
@@ -304,17 +316,26 @@ func fullTwoLevel() [][]rowCriteria {
 	var r [][]rowCriteria
 
 	for x := 0; x < 40; x++ {
-		for x1 := 0; x1 < 40; x1++ {
+		for cr := 0; cr < 6; cr++ {
+			var v0 []rowCriteria
+			var k0 rowCriteria
+			k0.r = x
+			k0.c = cr
+			v0 = append(v0, k0)
+			r = append(r, v0)
 
-			// for each criteria
-			for cr := 0; cr < 6; cr++ {
+			for x1 := 0; x1 < 40; x1++ {
+				// for each criteria
 				for cr1 := 0; cr1 < 6; cr1++ {
-					var v []rowCriteria
-					var k rowCriteria
-					k.r = x
-					k.c = cr
-					v = append(v, k)
-					r = append(r, v)
+					if x1 > x && cr1 > cr {
+						var v1 []rowCriteria
+						var k1 rowCriteria
+						k1.r = x1
+						k1.c = cr1
+						v1 = append(v1, k1)
+						v1 = append(v1, k0)
+						r = append(r, v1)
+					}
 				}
 			}
 		}
@@ -326,13 +347,13 @@ func fullTwoLevel() [][]rowCriteria {
 func firstLevelEval(dataSetId int) []scoreResult {
 	var (
 		r []scoreResult
-		//rc rowCriteria
 	)
 
 	// Get the partition to work on
 	d := partitionByDataset(dataSetId)
 
-	src := fullOneLevel()
+	//src := fullOneLevel()
+	src := fullTwoLevel()
 
 	for _, src1 := range src {
 		t := partitionByRowCriteria(d, src1)
@@ -340,35 +361,29 @@ func firstLevelEval(dataSetId int) []scoreResult {
 		r = append(r, s)
 	}
 
-	//	// for each data column
-	//	for x := 0; x < 40; x++ {
-	//		// for each criteria
-	//		for cr := 0; cr < 6; cr++ {
-	//			// evaluate the score
-	//			var rcData []rowCriteria
-	//			rc.r = x
-	//			rc.c = cr
-	//			rcData = append(rcData, rc)
-
-	//			t := partitionByRowCriteria(d, rcData)
-	//			s := evalScore(t, rcData, dataSetId)
-
-	//			r = append(r, s)
-	//		}
-	//	}
-
 	return r
 }
 
 func main() {
-	var dataSetId = 4
-
 	readData()
-	s := firstLevelEval(dataSetId)
-	sort.Sort(scoreResults(s))
-	outputScores(s)
 
-	fmt.Printf("Negative Score Count: %d", negativeScoreCount(s))
+	var scores []scoreResult
+
+	for dataSetId := 1; dataSetId < 1201; dataSetId++ {
+		s := firstLevelEval(dataSetId)
+		sort.Sort(scoreResults(s))
+		if len(s) > 0 {
+			scores = append(scores, s[0])
+		}
+	}
+
+	//	var dataSetId = 3
+
+	//	s := firstLevelEval(dataSetId)
+	//	sort.Sort(scoreResults(s))
+	//	outputScores(s)
+
+	//	fmt.Printf("Negative Score Count: %d", negativeScoreCount(s))
 
 	// Count negative values of score
 
