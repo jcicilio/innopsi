@@ -8,6 +8,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/montanaflynn/stats"
 )
@@ -65,8 +66,14 @@ func criteria(v int, c int) bool {
 }
 
 const subjects int = 240
-const datasets int = 1200
-const rowThreshhold int = 10
+const rowThreshhold int = 20
+const maxCriteria = 6
+
+//const datasets int = 1200
+const datasets int = 4
+
+//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
+const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
 	data   []coreData
@@ -90,7 +97,8 @@ func (s scoreResults) Less(i, j int) bool {
 
 // Read in the raw data, and then classify numerica data into three values also
 func readData() {
-	csvfile, err := os.Open("./data/InnoCentive_9933623_Data.csv")
+
+	csvfile, err := os.Open(datafilename)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -258,7 +266,12 @@ func outputResults(s []scoreResult) {
 	}
 
 	// Output to file
-	f, _ := os.Create("/temp/output.csv")
+	t := time.Now()
+	filename := fmt.Sprintf("./results/o_%d%02d%02dT%02d%02d%02d.csv",
+		t.Year(), t.Month(), t.Day(),
+		t.Hour(), t.Minute(), t.Second())
+	f, _ := os.Create(filename)
+
 	defer f.Close()
 
 	// Write headings, id, dataset_1 through n
@@ -304,6 +317,8 @@ func resultsArray(positive []coreData) []int {
 	for _, each := range positive {
 		r[each.id-1] = 1
 	}
+
+	//fmt.Printf("positive: %d", len(positive))
 
 	return r
 }
@@ -369,7 +384,7 @@ func fullOneLevel() [][]rowCriteria {
 
 	for x := 0; x < 40; x++ {
 		// for each criteria
-		for cr := 0; cr < 6; cr++ {
+		for cr := 0; cr < maxCriteria; cr++ {
 			var v []rowCriteria
 			var k rowCriteria
 			k.r = x
@@ -387,7 +402,7 @@ func fullTwoLevel() [][]rowCriteria {
 	var r [][]rowCriteria
 
 	for x := 0; x < 40; x++ {
-		for cr := 0; cr < 6; cr++ {
+		for cr := 0; cr < maxCriteria; cr++ {
 			var v0 []rowCriteria
 			var k0 rowCriteria
 			k0.r = x
@@ -397,7 +412,7 @@ func fullTwoLevel() [][]rowCriteria {
 
 			for x1 := 0; x1 < 40; x1++ {
 				// for each criteria
-				for cr1 := 0; cr1 < 6; cr1++ {
+				for cr1 := 0; cr1 < maxCriteria; cr1++ {
 					if x1 > x && cr1 > cr {
 						var v1 []rowCriteria
 						var k1 rowCriteria
@@ -437,6 +452,9 @@ func levelEval(dataSetId int) []scoreResult {
 }
 
 func main() {
+	t := time.Now()
+	fmt.Println(t.Format(time.RFC3339))
+
 	readData()
 
 	var scores []scoreResult
@@ -446,6 +464,7 @@ func main() {
 	fmt.Printf("levels count: %d \n", len(level1))
 
 	levels = fullTwoLevel()
+
 	//outputRowCriteria(levels)
 	fmt.Printf("levels count: %d \n", len(levels))
 
@@ -461,4 +480,8 @@ func main() {
 
 	outputScores(scores)
 	outputResults(scores)
+
+	t = time.Now()
+	fmt.Println(t.Format(time.RFC3339))
+
 }
