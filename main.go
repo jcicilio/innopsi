@@ -139,19 +139,27 @@ func outputData(d []coreData) {
 }
 
 func outputScore(s scoreResult) {
-	//b, _ := json.Marshal(s)
-	fmt.Print("{")
-	fmt.Printf("score: %f, ", s.score)
-	fmt.Print("id:[ ")
-	// Now array of t1 rows
-	for i := 0; i < len(s.t1); i++ {
-		fmt.Printf("%d ", s.t1[i].id)
-		if i != len(s.t1)-1 {
-			fmt.Print(",")
-		}
+	//	// Todo: put this in string builder
+	//	//b, _ := json.Marshal(s)
+	//	fmt.Print("{")
+	//	fmt.Printf("score: %f, ", s.score)
+	//	fmt.Print("id:[ ")
+	//	// Now array of t1 rows
+	//	for i := 0; i < len(s.t1); i++ {
+	//		fmt.Printf("%d ", s.t1[i].id)
+	//		if i != len(s.t1)-1 {
+	//			fmt.Print(",")
+	//		}
+	//	}
+	//	fmt.Print("]")
+	//	fmt.Println("}\n")
+	fmt.Printf("%d, %d, %f \n", s.rc[0].r, s.rc[0].c, s.score)
+}
+
+func outputScores(s []scoreResult) {
+	for _, each := range s {
+		outputScore(each)
 	}
-	fmt.Print("]")
-	fmt.Println("}")
 }
 
 // Get a partition of the dataset
@@ -190,11 +198,12 @@ func partitionByRowCriteria(d []coreData, rc []rowCriteria) []coreData {
 	return r
 }
 
-func evalScore(d []coreData, rc []rowCriteria) scoreResult {
+func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	var s scoreResult
 	s.rc = rc
 	s.d = d
 	s.score = 0
+	s.dataSetId = dataSetId
 
 	// check for minimum row threshhold
 	if len(d) <= rowThreshhold {
@@ -205,10 +214,14 @@ func evalScore(d []coreData, rc []rowCriteria) scoreResult {
 	var t1 []coreData
 	var t0s []float64
 	var t1s []float64
+	var allTs []float64
 
 	// Partition the data into treatment 0 and treatment 1
 	// and save the score for evaluation
 	for _, each := range d {
+		// Save all responses for later SD calculation
+		allTs = append(allTs, each.y)
+
 		if each.treatment == 0 {
 			t0 = append(t0, each)
 			t0s = append(t0s, each.y)
@@ -228,36 +241,68 @@ func evalScore(d []coreData, rc []rowCriteria) scoreResult {
 	// then calculate the median, also experiment with average
 	var mean0, _ = stats.Mean(t0s)
 	var mean1, _ = stats.Mean(t1s)
+	var sd, _ = stats.StandardDeviationPopulation(allTs)
 
 	// subtract the two t0-t1, we want t1 to be smaller
 	var meanValue = mean0 - mean1
-	if meanValue < 0.0 {
-		meanValue = 0.0
-	}
 
-	s.score = meanValue
+	s.score = meanValue / sd
 
 	return s
 }
 
+func firstLevelEval(dataSetId int) []scoreResult {
+	var (
+		r  []scoreResult
+		rc rowCriteria
+	)
+
+	// Get the partition to work on
+	d := partitionByDataset(dataSetId)
+
+	// for each data column
+	for x := 0; x < 40; x++ {
+		// for each criteria
+		for cr := 0; cr < 6; cr++ {
+			// evaluate the score
+			var rcData []rowCriteria
+			rc.r = x
+			rc.c = cr
+			rcData = append(rcData, rc)
+
+			t := partitionByRowCriteria(d, rcData)
+			s := evalScore(t, rcData, dataSetId)
+
+			r = append(r, s)
+		}
+	}
+
+	return r
+}
+
 func main() {
+	var dataSetId = 2
+
 	readData()
-	d2 := partitionByDataset(2)
-	//outputData(d2)
+	s := firstLevelEval(dataSetId)
 
-	var rc, rc1 rowCriteria
-	rc.c = 0
-	rc.r = 0
-	rc1.r = 39
-	rc1.c = 1
+	outputScores(s)
+	//	d2 := partitionByDataset(dataSetId)
+	//	//outputData(d2)
 
-	var rcData []rowCriteria
-	rcData = append(rcData, rc)
-	rcData = append(rcData, rc1)
+	//	var rc, rc1 rowCriteria
+	//	rc.c = 0
+	//	rc.r = 0
+	//	rc1.r = 39
+	//	rc1.c = 1
 
-	t2 := partitionByRowCriteria(d2, rcData)
-	outputData(t2)
+	//	var rcData []rowCriteria
+	//	rcData = append(rcData, rc)
+	//	rcData = append(rcData, rc1)
 
-	s2 := evalScore(t2, rcData)
-	outputScore(s2)
+	//	t2 := partitionByRowCriteria(d2, rcData)
+	//	outputData(t2)
+
+	//	s2 := evalScore(t2, rcData, dataSetId)
+	//	outputScore(s2)
 }
