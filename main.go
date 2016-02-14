@@ -5,6 +5,7 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"math"
 	"os"
 	"sort"
 	"strconv"
@@ -66,14 +67,17 @@ func criteria(v int, c int) bool {
 }
 
 const subjects int = 240
-const rowThreshhold int = 20
+const rowThreshhold int = 60
 const maxCriteria = 6
+const validCriteriaThreshhold = -110.16
 
-//const datasets int = 1200
-const datasets int = 4
+const datasets int = 1200
 
-//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
-const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
+//const datasets int = 4
+
+const datafilename string = "./data/InnoCentive_9933623_Data.csv"
+
+//const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
 	data   []coreData
@@ -92,6 +96,7 @@ func (s scoreResults) Swap(i, j int) {
 }
 
 func (s scoreResults) Less(i, j int) bool {
+
 	return s[i].score < s[j].score
 }
 
@@ -167,9 +172,9 @@ func outputData(d []coreData) {
 
 func outputScore(s scoreResult) {
 
-	if s.score >= 0.0 {
-		return
-	}
+	//if s.score >= 0.0 {
+	//	return
+	//}
 
 	fmt.Printf("%d, %f, ", s.dataSetId, s.score)
 	for _, each := range s.rc {
@@ -242,6 +247,11 @@ func partitionByRowCriteria(d []coreData, rc []rowCriteria) []coreData {
 }
 
 func outputResults(s []scoreResult) {
+	var zeroVector, pv []int
+	// first add all zero values
+	for row := 0; row < subjects; row++ {
+		zeroVector = append(zeroVector, 0)
+	}
 	// Add one column for the id
 	var dataSet [subjects][datasets + 1]int
 
@@ -257,7 +267,11 @@ func outputResults(s []scoreResult) {
 	for row := 0; row < subjects; row++ {
 		for col := 0; col < datasets; col++ {
 			// data is organized one dataset per column
-			pv := resultsArray(s[col].t1)
+			if s[col].score > validCriteriaThreshhold {
+				pv = zeroVector
+			} else {
+				pv = resultsArray(s[col].t1)
+			}
 			// with the scores for individuals
 			for sub := 0; sub < subjects; sub++ {
 				dataSet[sub][col+1] = pv[sub]
@@ -368,14 +382,41 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	// then calculate the median, also experiment with average
 	var mean0, _ = stats.Mean(t0s)
 	var mean1, _ = stats.Mean(t1s)
-	var sd, _ = stats.StandardDeviationPopulation(allTs)
+
+	//var sd, _ = stats.StandardDeviationPopulation(allTs)
 
 	// subtract the two t0-t1, we want t1 to be smaller
+	// Note: use spooled
+	// square root of ((Nt-1)St^2 + (Nc-1)Sc^2)/(Nt+Nc))
+	//	var St, _ = stats.StandardDeviation(t1s)
+	//	var Sc, _ = stats.StandardDeviation(t0s)
+	//	var Nt = float64(len(t1s))
+	//	var Nc = float64(len(t0s))
+	//	var sPooled = math.Sqrt((Nt-1)*square(St) + (Nc-1)*square(Sc)/(Nt+Nc))
+
+	//var _, t1confh = NormalConfidenceInterval(t1s)
+	//var _, t0confh = NormalConfidenceInterval(t0s)
+
+	//var meanValue = mean1 - mean0
+	//var meanValue = (mean1/St - mean0/Sc) / sPooled
 	var meanValue = mean1 - mean0
 
-	s.score = meanValue / sd
+	s.score = meanValue
 
 	return s
+}
+
+func square(f float64) float64 {
+	return f * f
+}
+
+// https://github.com/hermanschaaf/stats/blob/master/stats.go
+func NormalConfidenceInterval(nums []float64) (lower float64, upper float64) {
+	conf := 1.95996 // 95% confidence for the mean, http://bit.ly/Mm05eZ
+	mean, _ := stats.Mean(nums)
+	dev, _ := stats.StandardDeviation(nums)
+	dev = dev / math.Sqrt(float64(len(nums)))
+	return mean - dev*conf, mean + dev*conf
 }
 
 // sample criteria selection distributions
@@ -399,31 +440,32 @@ func fullOneLevel() [][]rowCriteria {
 
 // sample criteria selection distributions
 func fullTwoLevel() [][]rowCriteria {
-	var r [][]rowCriteria
+	var f, r [][]rowCriteria
 
-	for x := 0; x < 40; x++ {
-		for cr := 0; cr < maxCriteria; cr++ {
+	f = fullOneLevel()
+
+	// Append single criteria
+	for i := 0; i < len(f); i++ {
+		var v0 []rowCriteria
+		var vi rowCriteria
+		vi.c = f[i][0].c
+		vi.r = f[i][0].r
+		v0 = append(v0, vi)
+		r = append(r, v0)
+	}
+
+	// Append two level criteria
+	for i := 0; i < len(f); i++ {
+		for j := i + 1; j < len(f); j++ {
 			var v0 []rowCriteria
-			var k0 rowCriteria
-			k0.r = x
-			k0.c = cr
-			v0 = append(v0, k0)
+			var vi, vj rowCriteria
+			vi.c = f[i][0].c
+			vi.r = f[i][0].r
+			vj.c = f[j][0].c
+			vj.r = f[j][0].r
+			v0 = append(v0, vi)
+			v0 = append(v0, vj)
 			r = append(r, v0)
-
-			for x1 := 0; x1 < 40; x1++ {
-				// for each criteria
-				for cr1 := 0; cr1 < maxCriteria; cr1++ {
-					if x1 > x && cr1 > cr {
-						var v1 []rowCriteria
-						var k1 rowCriteria
-						k1.r = x1
-						k1.c = cr1
-						v1 = append(v1, k1)
-						v1 = append(v1, k0)
-						r = append(r, v1)
-					}
-				}
-			}
 		}
 	}
 
@@ -459,12 +501,12 @@ func main() {
 
 	var scores []scoreResult
 
-	var level1 = fullOneLevel()
+	//var level1 = fullOneLevel()
 	//outputRowCriteria(level1)
-	fmt.Printf("levels count: %d \n", len(level1))
+	//fmt.Printf("levels count: %d \n", len(level1))
 
 	levels = fullTwoLevel()
-
+	//levels = level1
 	//outputRowCriteria(levels)
 	fmt.Printf("levels count: %d \n", len(levels))
 

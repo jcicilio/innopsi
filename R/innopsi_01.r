@@ -3,11 +3,63 @@ fname = "innopsi_01.csv"
 saveName = paste0("/Projects/innopsi/data/ModelResults/", fname)
 
 # load machine settings
-data.testing = read.csv("../data/InnoCentive_9933623_Data.csv", header = TRUE)
+data.testing = read.csv("../data/InnoCentive_9933623_Training_Data.csv", header = TRUE)
 min(data.testing)
 max(data.testing)
 str(data.testing)
 summary(data.testing)
+
+
+
+
+# check dataset 3
+d3 <- subset(data.testing, dataset==3)
+d3.t <- subset(d3, x5==1 | x5==2)
+d3.t0 <- subset(d3, x5==0 && trt=0)
+
+d3.tt <- subset(d3.t, trt==1)
+d3.tc <- subset(d3.t, trt==0)
+
+t.test(d3.tt$y)
+t.test(d3.tc$y)
+
+mt<-mean(d3.tt$y)
+mc<-mean(d3.tc$y)
+mean(d3.t0$y)
+
+st<- sd(d3.tt$y)
+sc<- sd(d3.tc$y)
+sd(d3.t0$y)
+st/(st +sc)
+
+summary(d3.tt$y)
+summary(d3.tc$y)
+summary(d3.t0$y)
+
+
+
+k<-(mt-mc)/sd(d3.tt$y)
+kp<-(mt-mc)/sd(d3.tc$y)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 mode(data.testing$x2)
 
