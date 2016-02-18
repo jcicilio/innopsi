@@ -39,37 +39,31 @@ type scoreResult struct {
 // Evaluation Criteria
 
 func criteria(v int, c int) bool {
-	if c == 0 {
+	switch c {
+	case 0:
 		return v == 0
-	}
-
-	if c == 1 {
+	case 1:
 		return v == 1
-	}
-
-	if c == 2 {
+	case 2:
 		return v == 2
-	}
-
-	if c == 3 {
+	case 3:
 		return v == 0 || v == 1
-	}
-
-	if c == 4 {
+	case 4:
 		return v == 0 || v == 2
-	}
-
-	if c == 5 {
+	case 5:
 		return v == 1 || v == 2
+	case 6:
+		return v == 0 || v == 1 || v == 2
 	}
 
 	return false
 }
 
 const subjects int = 240
-const rowThreshhold int = 60
+const rowThreshhold int = 30
 const maxCriteria = 6
-const validCriteriaThreshhold = -110.16
+
+//const validCriteriaThreshhold = -0.03
 
 const datasets int = 1200
 
@@ -141,7 +135,7 @@ func readData() {
 				data[count].xi[i], _ = strconv.Atoi(each[i+4])
 			}
 
-			// Get and convert the numeric values to three levels
+			// Get and convert the numeric values to five levels
 			for i := 21; i < 40; i++ {
 				// Offset of 4 into values
 				t, _ := strconv.ParseFloat(each[i+4], 10)
@@ -236,6 +230,11 @@ func partitionByRowCriteria(d []coreData, rc []rowCriteria) []coreData {
 			if !(criteria(each.xi[k.r], k.c)) {
 				b = false
 			}
+
+			// temp, just the ordinal data
+			//if k.r >= 20 {
+			//	b = false
+			//}
 		}
 
 		if b {
@@ -267,11 +266,11 @@ func outputResults(s []scoreResult) {
 	for row := 0; row < subjects; row++ {
 		for col := 0; col < datasets; col++ {
 			// data is organized one dataset per column
-			if s[col].score > validCriteriaThreshhold {
-				pv = zeroVector
-			} else {
-				pv = resultsArray(s[col].t1)
-			}
+			//if s[col].score > validCriteriaThreshhold {
+			//	pv = zeroVector
+			//} else {
+			pv = resultsArray(s[col].t1)
+			//}
 			// with the scores for individuals
 			for sub := 0; sub < subjects; sub++ {
 				dataSet[sub][col+1] = pv[sub]
@@ -382,14 +381,14 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	// then calculate the median, also experiment with average
 	var mean0, _ = stats.Mean(t0s)
 	var mean1, _ = stats.Mean(t1s)
-
+	var meanAll, _ = stats.Mean(allTs)
 	//var sd, _ = stats.StandardDeviationPopulation(allTs)
 
 	// subtract the two t0-t1, we want t1 to be smaller
 	// Note: use spooled
 	// square root of ((Nt-1)St^2 + (Nc-1)Sc^2)/(Nt+Nc))
-	//	var St, _ = stats.StandardDeviation(t1s)
-	//	var Sc, _ = stats.StandardDeviation(t0s)
+	//var St, _ = stats.StandardDeviation(t1s)
+	//var Sc, _ = stats.StandardDeviation(t0s)
 	//	var Nt = float64(len(t1s))
 	//	var Nc = float64(len(t0s))
 	//	var sPooled = math.Sqrt((Nt-1)*square(St) + (Nc-1)*square(Sc)/(Nt+Nc))
@@ -400,8 +399,9 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	//var meanValue = mean1 - mean0
 	//var meanValue = (mean1/St - mean0/Sc) / sPooled
 	var meanValue = mean1 - mean0
+	//var max, _ = stats.Max(allTs)
 
-	s.score = meanValue
+	s.score = meanValue / meanAll
 
 	return s
 }
@@ -486,6 +486,7 @@ func levelEval(dataSetId int) []scoreResult {
 
 	for _, src1 := range src {
 		t := partitionByRowCriteria(d, src1)
+		//fmt.Printf("number of rows: %d \n", len(t))
 		s := evalScore(t, src1, dataSetId)
 		r = append(r, s)
 	}
@@ -506,6 +507,7 @@ func main() {
 	//fmt.Printf("levels count: %d \n", len(level1))
 
 	levels = fullTwoLevel()
+	//levels = fullOneLevel()
 	//levels = level1
 	//outputRowCriteria(levels)
 	fmt.Printf("levels count: %d \n", len(levels))
@@ -517,6 +519,9 @@ func main() {
 			// pick the top score
 			scores = append(scores, s[0])
 			fmt.Printf("%d, %f \n", s[0].dataSetId, s[0].score)
+			//outputScore(s[0])
+			//outputScore(s[1])
+			//outputScore(s[2])
 		}
 	}
 
