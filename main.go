@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"math"
+	"math/rand"
 	"os"
 	"sort"
 	"strconv"
@@ -60,8 +61,12 @@ func criteria(v int, c int) bool {
 }
 
 const subjects int = 240
-const rowThreshhold int = 30
+const rowThreshhold int = 24
 const maxCriteria = 6
+
+// Actual set max will be two more than this, see rand function
+const rand_maxSetMembers = 13
+const rand_numSets = 50000
 
 //const validCriteriaThreshhold = -0.03
 
@@ -74,8 +79,9 @@ const datafilename string = "./data/InnoCentive_9933623_Data.csv"
 //const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
-	data   []coreData
-	levels [][]rowCriteria
+	data     []coreData
+	levels   [][]rowCriteria
+	levelOne [][]rowCriteria
 )
 
 // Sorting interface implementation for scoreResults
@@ -229,6 +235,7 @@ func partitionByRowCriteria(d []coreData, rc []rowCriteria) []coreData {
 		for _, k := range rc {
 			if !(criteria(each.xi[k.r], k.c)) {
 				b = false
+				break
 			}
 
 			// temp, just the ordinal data
@@ -381,8 +388,8 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	// then calculate the median, also experiment with average
 	var mean0, _ = stats.Mean(t0s)
 	var mean1, _ = stats.Mean(t1s)
-	var meanAll, _ = stats.Mean(allTs)
-	//var sd, _ = stats.StandardDeviationPopulation(allTs)
+	//var meanAll, _ = stats.Mean(allTs)
+	var sd, _ = stats.StandardDeviationPopulation(allTs)
 
 	// subtract the two t0-t1, we want t1 to be smaller
 	// Note: use spooled
@@ -398,10 +405,13 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 
 	//var meanValue = mean1 - mean0
 	//var meanValue = (mean1/St - mean0/Sc) / sPooled
-	var meanValue = mean1 - mean0
+
+	// Score Type 1
+	var meanDifference = mean1 - mean0
+	//s.score = meanDifference / meanAll
 	//var max, _ = stats.Max(allTs)
 
-	s.score = meanValue / meanAll
+	s.score = meanDifference / sd
 
 	return s
 }
@@ -442,7 +452,7 @@ func fullOneLevel() [][]rowCriteria {
 func fullTwoLevel() [][]rowCriteria {
 	var f, r [][]rowCriteria
 
-	f = fullOneLevel()
+	f = levelOne
 
 	// Append single criteria
 	for i := 0; i < len(f); i++ {
@@ -467,6 +477,41 @@ func fullTwoLevel() [][]rowCriteria {
 			v0 = append(v0, vj)
 			r = append(r, v0)
 		}
+	}
+
+	return r
+}
+
+func randLevels() [][]rowCriteria {
+	var f, r [][]rowCriteria
+	var flen int
+
+	f = levelOne
+	flen = len(f)
+
+	// Append single criteria
+	for i := 0; i < len(f); i++ {
+		var v0 []rowCriteria
+		var vi rowCriteria
+		vi.c = f[i][0].c
+		vi.r = f[i][0].r
+		v0 = append(v0, vi)
+		r = append(r, v0)
+	}
+
+	for i := 0; i < rand_numSets; i++ {
+		var s []rowCriteria
+		var sets = rand.Intn(rand_maxSetMembers) + 2
+		for j := 0; j < sets; j++ {
+			var random = rand.Intn(flen)
+
+			var vi rowCriteria
+			vi.c = f[random][0].c
+			vi.r = f[random][0].r
+			s = append(s, vi)
+		}
+
+		r = append(r, s)
 	}
 
 	return r
@@ -498,18 +543,23 @@ func main() {
 	t := time.Now()
 	fmt.Println(t.Format(time.RFC3339))
 
+	//rand.Seed(time.Now().UTC().UnixNano())
+
+	// Read in data
 	readData()
+
+	// Set one level with all row criteria
+	levelOne = fullOneLevel()
 
 	var scores []scoreResult
 
 	//var level1 = fullOneLevel()
-	//outputRowCriteria(level1)
-	//fmt.Printf("levels count: %d \n", len(level1))
+	//levels = fullTwoLevel()
 
-	levels = fullTwoLevel()
-	//levels = fullOneLevel()
 	//levels = level1
+	levels = randLevels()
 	//outputRowCriteria(levels)
+
 	fmt.Printf("levels count: %d \n", len(levels))
 
 	for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
