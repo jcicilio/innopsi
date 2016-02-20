@@ -65,8 +65,8 @@ const rowThreshhold int = 6
 const maxCriteria = 6
 
 // Actual set max will be two more than this, see rand function
-const rand_maxSetMembers = 8
-const rand_numSets = 100000
+const rand_maxSetMembers = 11
+const rand_numSets = 150000
 
 const validCriteriaThreshhold = -0.03
 
