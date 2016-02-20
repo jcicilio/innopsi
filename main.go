@@ -61,7 +61,7 @@ func criteria(v int, c int) bool {
 }
 
 const subjects int = 240
-const rowThreshhold int = 10
+const rowThreshhold int = 6
 const maxCriteria = 6
 
 // Actual set max will be two more than this, see rand function
