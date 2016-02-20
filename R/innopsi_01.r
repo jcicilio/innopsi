@@ -10,12 +10,118 @@ str(data.testing)
 summary(data.testing)
 
 
+d1 <- subset(data.testing, dataset==1)
+summary(d1)
+
+# Take all subsets of x1 through 20
+# create a dataset of all subsets 6 levels 20 rows 120 subsets, and evaluate them
+# data format  dataset, subsetid, column number, value, y
+d <- data.frame()
+
+# loop through rows, and then row bind to datasetS
+# or 5 columns to start
+dv.1 <-subset(data.testing, dataset==1)
+dv.1 <- dv.1[,c(1,2,3,4,5)]
+dv.1.t <-subset(dv.1, trt==1)
+dv.1.c <-subset(dv.1, trt==0)
+summary(dv.1.t)
+summary(dv.1.c)
+
+
+dv.2 <-subset(data.testing, dataset==1)
+dv.2 <- dv.2[,c(1,2,3,4,6)]
+dv.2.t <-subset(dv.2, trt==1)
+dv.2.c <-subset(dv.2, trt==0)
+summary(dv.2.t)
+summary(dv.2.c)
+
+
+dv.3 <-subset(data.testing, dataset==1)
+dv.3 <- dv.3[,c(1,2,3,4,7)]
+dv.3.t <-subset(dv.3, trt==1)
+dv.3.c <-subset(dv.3, trt==0)
+summary(dv.3.t)
+summary(dv.3.c)
+
+
+d <- data.frame()
+
+# loop through rows, and then row bind to datasetS
+# or 5 columns to start
+dv.1 <-subset(data.testing, dataset==3)
+dv.1 <- dv.1[,c(1,2,3,4,5)]
+dv.1.t <-subset(dv.1, trt==1)
+dv.1.c <-subset(dv.1, trt==0)
+summary(dv.1.t)
+summary(dv.1.c)
+
+
+dv.2 <-subset(data.testing, dataset==3)
+dv.2 <- dv.2[,c(1,2,3,4,6)]
+dv.2.t <-subset(dv.2, dv.2$trt==1)
+dv.2.c <-subset(dv.2, dv.2$trt==0)
+summary(dv.2.t)
+summary(dv.2.c)
+
+
+dv.3 <-subset(data.testing, dataset==3)
+dv.3 <- dv.3[,c(1,2,3,4,7)]
+dv.3.t <-subset(dv.3, trt==1)
+dv.3.c <-subset(dv.3, trt==0)
+summary(dv.3.t)
+summary(dv.3.c)
+
+
+# loop through rows, and then row bind to datasetS
+# or 5 columns to start
+dv.1 <-subset(data.testing, dataset==3)
+dv.1 <- dv.1[,c(1,2,3,4,5)]
+dv.1.t <-subset(dv.1, trt==1)
+dv.1.c <-subset(dv.1, trt==0)
+summary(dv.1.t)
+summary(dv.1.c)
+mean(dv.1.t$y)/sd(dv.1.t$y)
+mean(dv.1.c$y)/sd(dv.1.t$y)
+
+
+dv.2 <-subset(data.testing, dataset==3)
+dv.2 <- dv.2[,c(1,2,3,4,6)]
+dv.2.t <-subset(dv.2, trt==1)
+dv.2.c <-subset(dv.2, trt==0)
+summary(dv.2.t)
+summary(dv.2.c)
+mean(dv.2.t$y)/sd(dv.2.t$y)
+mean(dv.2.c$y)/sd(dv.2.t$y)
+
+
+dv.3 <-subset(data.testing, dataset==3 )
+dv.3 <- dv.3[,c(1,2,3,4,9)]
+dv.3.t <-subset(dv.3, trt==1)
+dv.3.t <- dv.3.t[,dv.3.t$x5==1 |dv.3.t$x5==2 ]
+dv.3.c <-subset(dv.3, trt==0)
+summary(dv.3.t)
+summary(dv.3.c)
+mean(dv.3.t$y)/sd(dv.3.t$y)
+mean(dv.3.c$y)/sd(dv.3.t$y)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # check dataset 3
 d3 <- subset(data.testing, dataset==3)
 d3.t <- subset(d3, x5==1 | x5==2)
-d3.t0 <- subset(d3, x5==0 && trt=0)
 
 d3.tt <- subset(d3.t, trt==1)
 d3.tc <- subset(d3.t, trt==0)

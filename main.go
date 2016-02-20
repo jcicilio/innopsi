@@ -61,7 +61,7 @@ func criteria(v int, c int) bool {
 }
 
 const subjects int = 240
-const rowThreshhold int = 14
+const rowThreshhold int = 10
 const maxCriteria = 6
 
 // Actual set max will be two more than this, see rand function
@@ -412,6 +412,8 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	//var max, _ = stats.Max(allTs)
 
 	s.score = meanDifference / sd
+
+	//s.score = (mean1/St - mean0/Sc) / St
 
 	return s
 }
