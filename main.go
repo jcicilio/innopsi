@@ -61,14 +61,14 @@ func criteria(v int, c int) bool {
 }
 
 const subjects int = 240
-const rowThreshhold int = 24
+const rowThreshhold int = 14
 const maxCriteria = 6
 
 // Actual set max will be two more than this, see rand function
-const rand_maxSetMembers = 13
-const rand_numSets = 50000
+const rand_maxSetMembers = 11
+const rand_numSets = 100000
 
-//const validCriteriaThreshhold = -0.03
+const validCriteriaThreshhold = -0.03
 
 const datasets int = 1200
 
