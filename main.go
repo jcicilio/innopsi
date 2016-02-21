@@ -45,13 +45,14 @@ const rowThreshhold int = 6
 const maxCriteria = 30
 
 const validCriteriaThreshhold = -0.03
-const datasets int = 1200
 
-//const datasets int = 4
+//const datasets int = 1200
 
-const datafilename string = "./data/InnoCentive_9933623_Data.csv"
+const datasets int = 4
 
-//const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
+//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
+
+const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
 	data               []coreData
