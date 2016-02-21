@@ -37,39 +37,16 @@ type scoreResult struct {
 	t1        []coreData
 }
 
-// Evaluation Criteria
-
-func criteria(v int, c int) bool {
-	switch c {
-	case 0:
-		return v == 0
-	case 1:
-		return v == 1
-	case 2:
-		return v == 2
-	case 3:
-		return v == 0 || v == 1
-	case 4:
-		return v == 0 || v == 2
-	case 5:
-		return v == 1 || v == 2
-	case 6:
-		return v == 0 || v == 1 || v == 2
-	}
-
-	return false
-}
-
 const subjects int = 240
 const rowThreshhold int = 6
-const maxCriteria = 6
+
+//const maxCriteria = 6
+
+const maxCriteria = 30
 
 // Actual set max will be two more than this, see rand function
-const rand_maxSetMembers = 11
-const rand_numSets = 150000
-
+const rand_maxSetMembers = 9
 const validCriteriaThreshhold = -0.03
-
 const datasets int = 1200
 
 //const datasets int = 4
@@ -79,9 +56,10 @@ const datafilename string = "./data/InnoCentive_9933623_Data.csv"
 //const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
-	data     []coreData
-	levels   [][]rowCriteria
-	levelOne [][]rowCriteria
+	data         []coreData
+	levels       [][]rowCriteria
+	levelOne     [][]rowCriteria
+	rand_numSets = 1000
 )
 
 // Sorting interface implementation for scoreResults
@@ -145,12 +123,28 @@ func readData() {
 			for i := 21; i < 40; i++ {
 				// Offset of 4 into values
 				t, _ := strconv.ParseFloat(each[i+4], 10)
-				if t < 33.3 {
-					data[count].xi[i] = 0
-				} else if t >= 33.3 && t < 66.6 {
-					data[count].xi[i] = 1
-				} else {
-					data[count].xi[i] = 2
+				if maxCriteria == 6 {
+					if t < 33.3 {
+						data[count].xi[i] = 0
+					} else if t >= 33.3 && t < 66.6 {
+						data[count].xi[i] = 1
+					} else {
+						data[count].xi[i] = 2
+					}
+				}
+
+				if maxCriteria == 30 {
+					if t < 20.0 {
+						data[count].xi[i] = 0
+					} else if t >= 20.0 && t < 40.0 {
+						data[count].xi[i] = 1
+					} else if t >= 40.0 && t < 60.0 {
+						data[count].xi[i] = 2
+					} else if t >= 60.0 && t < 80.0 {
+						data[count].xi[i] = 3
+					} else {
+						data[count].xi[i] = 4
+					}
 				}
 			}
 		}
@@ -208,6 +202,96 @@ func outputRowCriteria(c [][]rowCriteria) {
 		}
 		fmt.Println()
 	}
+}
+
+// initialize criteria arrays
+func criteria(v int, c int) bool {
+	switch c {
+	case 0:
+		return v == 0
+	case 1:
+		return v == 1
+	case 2:
+		return v == 2
+	case 3:
+		return v == 3
+	case 4:
+		return v == 4
+	case 5:
+		return v == 0 || v == 1
+	case 6:
+		return v == 0 || v == 2
+	case 7:
+		return v == 0 || v == 3
+	case 8:
+		return v == 0 || v == 4
+	case 9:
+		return v == 1 || v == 2
+	case 10:
+		return v == 1 || v == 3
+	case 11:
+		return v == 2 || v == 3
+	case 12:
+		return v == 2 || v == 4
+	case 13:
+		return v == 3 || v == 4
+	case 14:
+		return v == 1 || v == 4
+	case 15:
+		return v == 0 || v == 1 || v == 2
+	case 16:
+		return v == 0 || v == 1 || v == 3
+	case 17:
+		return v == 0 || v == 1 || v == 4
+	case 18:
+		return v == 0 || v == 2 || v == 3
+	case 19:
+		return v == 0 || v == 2 || v == 4
+	case 20:
+		return v == 0 || v == 3 || v == 4
+	case 21:
+		return v == 1 || v == 2 || v == 3
+	case 22:
+		return v == 1 || v == 2 || v == 4
+	case 23:
+		return v == 1 || v == 3 || v == 4
+	case 24:
+		return v == 2 || v == 3 || v == 4
+	case 25:
+		return v == 0 || v == 1 || v == 2 || v == 3
+	case 26:
+		return v == 0 || v == 1 || v == 2 || v == 4
+	case 27:
+		return v == 0 || v == 1 || v == 3 || v == 4
+	case 28:
+		return v == 0 || v == 2 || v == 3 || v == 4
+	case 29:
+		return v == 1 || v == 2 || v == 3 || v == 4
+	}
+
+	return false
+}
+
+// Evaluation Criteria
+func criteriaL(v int, c int) bool {
+	switch c {
+	case 0:
+		return v == 0
+	case 1:
+		return v == 1
+	case 2:
+		return v == 2
+	case 3:
+		return v == 0 || v == 1
+	case 4:
+		return v == 0 || v == 2
+	case 5:
+		return v == 1 || v == 2
+	case 6:
+		return v == 0 || v == 1 || v == 2
+	}
+
+	return false
 }
 
 // Get a partition of the dataset
@@ -541,44 +625,60 @@ func levelEval(dataSetId int) []scoreResult {
 	return r
 }
 
+func outputScoreList(s []scoreResult) {
+	for _, each := range s {
+		fmt.Printf("%d, %f \n", each.dataSetId, each.score)
+	}
+}
+
 func main() {
 	t := time.Now()
 	fmt.Println(t.Format(time.RFC3339))
 
-	//rand.Seed(time.Now().UTC().UnixNano())
+	rand.Seed(1)
 
 	// Read in data
 	readData()
 
-	// Set one level with all row criteria
+	// Set one level with all row criteria,
+	// this is used to start the set creation
 	levelOne = fullOneLevel()
 
-	var scores []scoreResult
-
+	//var scores []scoreResult
 	//var level1 = fullOneLevel()
 	//levels = fullTwoLevel()
-
 	//levels = level1
-	levels = randLevels()
+	//levels = levelOne
 	//outputRowCriteria(levels)
+	//fmt.Printf("levels count: %d \n", len(levels))
 
-	fmt.Printf("levels count: %d \n", len(levels))
+	rand_numSets = 25000
+	for experiment := 1; experiment <= 3; experiment++ {
+		// rand_numSets, vary from 35k to 105k by 35k
+		rand_numSets += 25000
+		// Setup experiment variables
+		var scores []scoreResult
+		levels = randLevels()
+		fmt.Printf("sets count: %d \n", len(levels))
 
-	for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
-		s := levelEval(dataSetId)
-		sort.Sort(scoreResults(s))
-		if len(s) > 0 {
-			// pick the top score
-			scores = append(scores, s[0])
-			fmt.Printf("%d, %f \n", s[0].dataSetId, s[0].score)
-			//outputScore(s[0])
-			//outputScore(s[1])
-			//outputScore(s[2])
+		for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
+			s := levelEval(dataSetId)
+			sort.Sort(scoreResults(s))
+
+			// s contains a list of scores for one dataset, sorted
+			// this is were we can get some info on that data
+			//outputScoreList(s)
+
+			if len(s) > 0 {
+				// pick the top score
+				scores = append(scores, s[0])
+				fmt.Printf("%d, %f \n", s[0].dataSetId, s[0].score)
+			}
 		}
-	}
 
-	outputScores(scores)
-	outputResults(scores)
+		outputScores(scores)
+		outputResults(scores)
+	}
 
 	t = time.Now()
 	fmt.Println(t.Format(time.RFC3339))
