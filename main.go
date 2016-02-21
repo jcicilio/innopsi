@@ -38,6 +38,17 @@ type scoreResult struct {
 	t1        []coreData
 }
 
+type confInterval struct {
+	min       float64
+	max       float64
+	diff      float64
+	middle    float64
+	closeness float64
+	t1Min     float64
+	t1Max     float64
+	diffSd    float64
+}
+
 const subjects int = 240
 const maxCriteria = 6
 
@@ -360,7 +371,11 @@ func outputResults(s []scoreResult) {
 			pv = resultsArray(s[col].t1)
 			// with the scores for individuals
 			for sub := 0; sub < subjects; sub++ {
+
 				dataSet[sub][col+1] = pv[sub]
+
+				//dataSet[sub][1] = 0
+
 			}
 		}
 	}
@@ -632,17 +647,23 @@ func evaluateScores(s []scoreResult) scoreResult {
 	// a larger number of members in the set
 
 	var topRange = 5
-	var scoreWeighted = 0.0
+	//	var scoreWeighted = 0.0
 	var scored scoreResult
-	var outputResults = false
+	var outputResults = true
+	var ci float64 = 100.0
 	for i := 0; i < topRange; i++ {
 		var scoreWeightedN = s[i].score * float64(len(s[i].t0)+len(s[i].t1))
-
-		if scoreWeightedN < scoreWeighted {
-			// Find the best weighted score and return that
-			scoreWeighted = scoreWeightedN
+		var ciN = calculateConfidenceInterval(s[i])
+		if ciN.diff < ci {
+			ci = ciN.diff
 			scored = s[i]
 		}
+
+		//		if scoreWeightedN < scoreWeighted {
+		//			// Find the best weighted score and return that
+		//			scoreWeighted = scoreWeightedN
+		//			scored = s[i]
+		//		}
 
 		if outputResults {
 			fmt.Printf("score: %f, weighted score: %f, t=%d, t1=%d, t0=%d, ",
@@ -656,8 +677,10 @@ func evaluateScores(s []scoreResult) scoreResult {
 				// r+1 to match naming offsets vs slice zero base
 				fmt.Printf("x=%d, c=%d, ", each.r+1, each.c)
 			}
+
 			fmt.Println()
 		}
+
 	}
 
 	if outputResults {
@@ -684,6 +707,56 @@ func compareTrainingDataWithResults() {
 
 	// output count of differences
 	fmt.Printf("differences: %d \n", differences)
+}
+
+func calculateConfidenceInterval(s scoreResult) confInterval {
+	var t0s []float64
+	var t1s []float64
+
+	// Partition the data into treatment 0 and treatment 1
+	// and save the score for evaluation
+	for _, each := range s.t0 {
+		t0s = append(t0s, each.y)
+	}
+
+	for _, each := range s.t1 {
+		t1s = append(t1s, each.y)
+	}
+
+	var ci confInterval
+	var z = 1.96 // http://www.dummies.com/how-to/content/creating-a-confidence-interval-for-the-difference-.html
+	//var z = 1.645 // http://www.dummies.com/how-to/content/creating-a-confidence-interval-for-the-difference-.html
+
+	var m0, _ = stats.Mean(t0s)
+	var n0 = float64(len(t0s))
+	var sd0, _ = stats.StandardDeviation(t0s)
+
+	var m1, _ = stats.Mean(t1s)
+	var n1 = float64(len(t1s))
+	var sd1, _ = stats.StandardDeviation(t1s)
+
+	var mDiff = m0 - m1
+	var sd0s = sd0 * sd0
+	var sd1s = sd1 * sd1
+
+	ci.min = mDiff - z*math.Sqrt(sd1s/n1+sd0s/n0)
+	ci.max = mDiff + z*math.Sqrt(sd1s/n1+sd0s/n0)
+	ci.diff = ci.min - ci.max
+
+	ci.t1Max = m1 + ci.max
+	ci.t1Min = m1 + ci.min
+	ci.diffSd = ci.diff / sd1
+
+	// how close is the score to the middle of the confidence interval
+	ci.middle = (ci.min + ci.max) / 2
+	//ci.closeness = math.Abs(s.score - ci.middle)
+	//ci.closeness = math.Abs(ci.diffSd - s.score)
+
+	// Difference in sample means +- confidence interval
+
+	fmt.Printf("conf interval: %f to %f,  conf diff: %f, t1: %f, t1max: %f, t1min: %f, diffSd: %f\n", ci.min, ci.max, ci.diff, m1, ci.t1Max, ci.t1Min, ci.diffSd)
+
+	return ci
 }
 
 func main() {
@@ -738,7 +811,7 @@ func main() {
 		outputResults(scores)
 
 		// Compare to training truth data
-		// compareTrainingDataWithResults()
+		compareTrainingDataWithResults()
 	}
 
 	t = time.Now()
