@@ -5,6 +5,7 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"math/rand"
 	"os"
@@ -38,21 +39,17 @@ type scoreResult struct {
 }
 
 const subjects int = 240
-const rowThreshhold int = 6
+const maxCriteria = 6
 
-//const maxCriteria = 6
+//const maxCriteria = 30
 
-const maxCriteria = 30
+const datasets int = 1200
 
-const validCriteriaThreshhold = -0.03
+//const datasets int = 4
 
-//const datasets int = 1200
+const datafilename string = "./data/InnoCentive_9933623_Data.csv"
 
-const datasets int = 4
-
-//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
-
-const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
+//const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
 	data               []coreData
@@ -60,6 +57,9 @@ var (
 	levelOne           [][]rowCriteria
 	rand_numSets           = 1000
 	rand_maxSetMembers int = 9
+	maxExperiments     int = 1
+	filename           string
+	rowThreshhold      int = 6
 )
 
 // Sorting interface implementation for scoreResults
@@ -356,12 +356,8 @@ func outputResults(s []scoreResult) {
 	// output the array
 	for row := 0; row < subjects; row++ {
 		for col := 0; col < datasets; col++ {
-			// data is organized one dataset per column
-			//if s[col].score > validCriteriaThreshhold {
-			//	pv = zeroVector
-			//} else {
+
 			pv = resultsArray(s[col].t1)
-			//}
 			// with the scores for individuals
 			for sub := 0; sub < subjects; sub++ {
 				dataSet[sub][col+1] = pv[sub]
@@ -371,7 +367,7 @@ func outputResults(s []scoreResult) {
 
 	// Output to file
 	t := time.Now()
-	filename := fmt.Sprintf("./results/o_%d%02d%02dT%02d%02d%02d.csv",
+	filename = fmt.Sprintf("./results/o_%d%02d%02dT%02d%02d%02d.csv",
 		t.Year(), t.Month(), t.Day(),
 		t.Hour(), t.Minute(), t.Second())
 	f, _ := os.Create(filename)
@@ -631,6 +627,65 @@ func outputScoreList(s []scoreResult) {
 	}
 }
 
+func evaluateScores(s []scoreResult) scoreResult {
+	// look for significance, which includes a high score, and
+	// a larger number of members in the set
+
+	var topRange = 5
+	var scoreWeighted = 0.0
+	var scored scoreResult
+	var outputResults = false
+	for i := 0; i < topRange; i++ {
+		var scoreWeightedN = s[i].score * float64(len(s[i].t0)+len(s[i].t1))
+
+		if scoreWeightedN < scoreWeighted {
+			// Find the best weighted score and return that
+			scoreWeighted = scoreWeightedN
+			scored = s[i]
+		}
+
+		if outputResults {
+			fmt.Printf("score: %f, weighted score: %f, t=%d, t1=%d, t0=%d, ",
+				s[i].score,
+				scoreWeightedN,
+				len(s[i].t0)+len(s[i].t1),
+				len(s[i].t1),
+				len(s[i].t0))
+
+			for _, each := range s[i].rc {
+				// r+1 to match naming offsets vs slice zero base
+				fmt.Printf("x=%d, c=%d, ", each.r+1, each.c)
+			}
+			fmt.Println()
+		}
+	}
+
+	if outputResults {
+		fmt.Printf("winning: %f\n", scored.score)
+	}
+
+	return scored
+}
+
+func compareTrainingDataWithResults() {
+	// Open training file
+	// Open result file
+	trainingFile, _ := ioutil.ReadFile(filename)
+	testingFile, _ := ioutil.ReadFile("./data/InnoCentive_9933623_Training_Data_truth_subjects.csv")
+	fmt.Printf("lengths: %d %d \n", len(trainingFile), len(testingFile))
+	// Files are 3066 bytes, (hack)
+	var differences = 0
+	for i := 0; i < len(trainingFile); i++ {
+		// One by one byte comparison
+		if trainingFile[i] != testingFile[i] {
+			differences += 1
+		}
+	}
+
+	// output count of differences
+	fmt.Printf("differences: %d \n", differences)
+}
+
 func main() {
 	t := time.Now()
 	fmt.Println(t.Format(time.RFC3339))
@@ -644,27 +699,23 @@ func main() {
 	// this is used to start the set creation
 	levelOne = fullOneLevel()
 
-	//var scores []scoreResult
-	//var level1 = fullOneLevel()
 	//levels = fullTwoLevel()
-	//levels = level1
-	//levels = levelOne
 	//outputRowCriteria(levels)
-	//fmt.Printf("levels count: %d \n", len(levels))
 
 	// experiment variables
-	rand_numSets = 100000
-	rand_maxSetMembers = 10
+	rand_numSets = 25000
+	rand_maxSetMembers = 11
+	maxExperiments = 5
 
-	for experiment := 1; experiment <= 5; experiment++ {
+	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
-		rand_numSets += 0
-		rand_maxSetMembers += 1
+		rand_numSets += 25000
+		rand_maxSetMembers += 0
 
 		// Setup experiment variables
 		var scores []scoreResult
 		levels = randLevels()
-		fmt.Printf("sets count: %d \n", len(levels))
+		fmt.Printf("sets count: %d, max set members: %d \n", len(levels), rand_maxSetMembers+2)
 
 		for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
 			s := levelEval(dataSetId)
@@ -675,14 +726,19 @@ func main() {
 			//outputScoreList(s)
 
 			if len(s) > 0 {
+				var sEval = evaluateScores(s)
 				// pick the top score
-				scores = append(scores, s[0])
-				fmt.Printf("%d, %f \n", s[0].dataSetId, s[0].score)
+				scores = append(scores, sEval)
+				fmt.Printf("%d, %f \n", sEval.dataSetId, sEval.score)
 			}
 		}
 
 		outputScores(scores)
+		// Write output file
 		outputResults(scores)
+
+		// Compare to training truth data
+		// compareTrainingDataWithResults()
 	}
 
 	t = time.Now()
