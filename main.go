@@ -44,8 +44,6 @@ const rowThreshhold int = 6
 
 const maxCriteria = 30
 
-// Actual set max will be two more than this, see rand function
-const rand_maxSetMembers = 9
 const validCriteriaThreshhold = -0.03
 const datasets int = 1200
 
@@ -56,10 +54,11 @@ const datafilename string = "./data/InnoCentive_9933623_Data.csv"
 //const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
-	data         []coreData
-	levels       [][]rowCriteria
-	levelOne     [][]rowCriteria
-	rand_numSets = 1000
+	data               []coreData
+	levels             [][]rowCriteria
+	levelOne           [][]rowCriteria
+	rand_numSets           = 1000
+	rand_maxSetMembers int = 9
 )
 
 // Sorting interface implementation for scoreResults
@@ -652,10 +651,15 @@ func main() {
 	//outputRowCriteria(levels)
 	//fmt.Printf("levels count: %d \n", len(levels))
 
-	rand_numSets = 25000
-	for experiment := 1; experiment <= 3; experiment++ {
-		// rand_numSets, vary from 35k to 105k by 35k
-		rand_numSets += 25000
+	// experiment variables
+	rand_numSets = 100000
+	rand_maxSetMembers = 10
+
+	for experiment := 1; experiment <= 5; experiment++ {
+		// experiment variables, changes per experiment
+		rand_numSets += 0
+		rand_maxSetMembers += 1
+
 		// Setup experiment variables
 		var scores []scoreResult
 		levels = randLevels()
