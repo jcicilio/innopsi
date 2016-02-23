@@ -49,18 +49,23 @@ type confInterval struct {
 	diffSd    float64
 }
 
+type confInterval2 struct {
+	t0min, t0max, t1min, t1max float64
+	overlap                    bool
+}
+
 const subjects int = 240
 const maxCriteria = 6
 
 //const maxCriteria = 30
 
-const datasets int = 1200
+//const datasets int = 1200
 
-//const datasets int = 4
+const datasets int = 4
 
-const datafilename string = "./data/InnoCentive_9933623_Data.csv"
+//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
 
-//const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
+const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
 	data               []coreData
@@ -477,23 +482,41 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 		return s
 	}
 
-	s.t0 = t0
-	s.t1 = t1
-
 	// then calculate the median, also experiment with average
 	var mean0, _ = stats.Mean(t0s)
 	var mean1, _ = stats.Mean(t1s)
 	//var meanAll, _ = stats.Mean(allTs)
-	var sd, _ = stats.StandardDeviationPopulation(allTs)
+	//var sd, _ = stats.StandardDeviationPopulation(allTs)
 
 	// subtract the two t0-t1, we want t1 to be smaller
 	// Note: use spooled
 	// square root of ((Nt-1)St^2 + (Nc-1)Sc^2)/(Nt+Nc))
-	//var St, _ = stats.StandardDeviation(t1s)
-	//var Sc, _ = stats.StandardDeviation(t0s)
-	//	var Nt = float64(len(t1s))
-	//	var Nc = float64(len(t0s))
-	//	var sPooled = math.Sqrt((Nt-1)*square(St) + (Nc-1)*square(Sc)/(Nt+Nc))
+	var St, _ = stats.StandardDeviation(t1s)
+	var Sc, _ = stats.StandardDeviation(t0s)
+	var Nt = float64(len(t1s))
+	var Nc = float64(len(t0s))
+
+	//func calculateConfidenceInterval2(nt, nc, mt, mc, sdt, sdc float64) confInterval2
+	var ci = calculateConfidenceInterval2(Nt, Nc, mean1, mean0, St, Sc)
+
+	// If the confidence intervals overlap then not valid range
+	if ci.overlap {
+		return s
+	}
+
+	var St2 = St * St
+	var Sc2 = Sc * Sc
+	var Ntm1 = float64(Nt - 1)
+	var Ncm1 = float64(Nc - 1)
+	var kt = Ntm1 * St2
+	var kc = Ncm1 * Sc2
+	var ksum = kt + kc
+	var Nsum = Nt + Nc
+	var sPooled = math.Sqrt(ksum / Nsum)
+
+	s.t0 = t0
+	s.t1 = t1
+	//sPooled = math.Sqrt((St2 * Sc2) / 2)
 
 	//var _, t1confh = NormalConfidenceInterval(t1s)
 	//var _, t0confh = NormalConfidenceInterval(t0s)
@@ -506,7 +529,11 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	//s.score = meanDifference / meanAll
 	//var max, _ = stats.Max(allTs)
 
-	s.score = meanDifference / sd
+	s.score = meanDifference / sPooled
+
+	//	if math.Abs(s.score) >= 1.0 {
+	//		s.score = 0
+	//	}
 
 	//s.score = (mean1/St - mean0/Sc) / St
 
@@ -649,7 +676,7 @@ func evaluateScores(s []scoreResult) scoreResult {
 	var topRange = 5
 	//	var scoreWeighted = 0.0
 	var scored scoreResult
-	var outputResults = true
+	var outputResults = false
 	var ci float64 = 100.0
 	for i := 0; i < topRange; i++ {
 		var scoreWeightedN = s[i].score * float64(len(s[i].t0)+len(s[i].t1))
@@ -709,6 +736,35 @@ func compareTrainingDataWithResults() {
 	fmt.Printf("differences: %d \n", differences)
 }
 
+func calculateConfidenceInterval2(nt, nc, mt, mc, sdt, sdc float64) confInterval2 {
+
+	var ci confInterval2
+	var z = 1.96 // http://www.dummies.com/how-to/content/creating-a-confidence-interval-for-the-difference-.html
+
+	ci.t1min = mt - z*(sdt/math.Sqrt(nt))
+	ci.t0min = mc - z*(sdt/math.Sqrt(nc))
+
+	ci.t1max = mt + z*(sdt/math.Sqrt(nt))
+	ci.t0max = mt + z*(sdt/math.Sqrt(nc))
+
+	ci.overlap = false
+
+	if ci.t1max <= ci.t0max && ci.t1max >= ci.t0min {
+		ci.overlap = true
+	}
+
+	if ci.t1min <= ci.t0max && ci.t1min >= ci.t0min {
+		ci.overlap = true
+	}
+
+	// check for encirclement
+	if ci.t0min <= ci.t1max && ci.t0min >= ci.t1min {
+		ci.overlap = true
+	}
+
+	return ci
+}
+
 func calculateConfidenceInterval(s scoreResult) confInterval {
 	var t0s []float64
 	var t1s []float64
@@ -754,7 +810,7 @@ func calculateConfidenceInterval(s scoreResult) confInterval {
 
 	// Difference in sample means +- confidence interval
 
-	fmt.Printf("conf interval: %f to %f,  conf diff: %f, t1: %f, t1max: %f, t1min: %f, diffSd: %f\n", ci.min, ci.max, ci.diff, m1, ci.t1Max, ci.t1Min, ci.diffSd)
+	//fmt.Printf("conf interval: %f to %f,  conf diff: %f, t1: %f, t1max: %f, t1min: %f, diffSd: %f\n", ci.min, ci.max, ci.diff, m1, ci.t1Max, ci.t1Min, ci.diffSd)
 
 	return ci
 }
@@ -776,14 +832,14 @@ func main() {
 	//outputRowCriteria(levels)
 
 	// experiment variables
-	rand_numSets = 25000
+	rand_numSets = 75000
 	rand_maxSetMembers = 11
-	maxExperiments = 5
+	maxExperiments = 2
 
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
-		rand_numSets += 25000
-		rand_maxSetMembers += 0
+		rand_numSets += 0
+		rand_maxSetMembers += 25000
 
 		// Setup experiment variables
 		var scores []scoreResult
@@ -799,8 +855,9 @@ func main() {
 			//outputScoreList(s)
 
 			if len(s) > 0 {
-				var sEval = evaluateScores(s)
+				//var sEval = evaluateScores(s)
 				// pick the top score
+				var sEval = s[0]
 				scores = append(scores, sEval)
 				fmt.Printf("%d, %f \n", sEval.dataSetId, sEval.score)
 			}
@@ -811,7 +868,7 @@ func main() {
 		outputResults(scores)
 
 		// Compare to training truth data
-		compareTrainingDataWithResults()
+		//compareTrainingDataWithResults()
 	}
 
 	t = time.Now()
