@@ -55,17 +55,16 @@ type confInterval2 struct {
 }
 
 const subjects int = 240
-const maxCriteria = 6
+const minCriteria = 6
+const maxCriteria = 30
 
-//const maxCriteria = 30
+const datasets int = 1200
 
-//const datasets int = 1200
+//const datasets int = 4
 
-const datasets int = 4
+const datafilename string = "./data/InnoCentive_9933623_Data.csv"
 
-//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
-
-const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
+//const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
 	data               []coreData
@@ -221,7 +220,7 @@ func outputRowCriteria(c [][]rowCriteria) {
 }
 
 // initialize criteria arrays
-func criteria(v int, c int) bool {
+func criteriaH(v int, c int) bool {
 	switch c {
 	case 0:
 		return v == 0
@@ -310,6 +309,14 @@ func criteriaL(v int, c int) bool {
 	return false
 }
 
+func criteria(x, v, c int) bool {
+	if x < 20 {
+		return criteriaL(v, c)
+	}
+
+	return criteriaH(v, c)
+}
+
 // Get a partition of the dataset
 func partitionByDataset(dataSetId int) []coreData {
 	var r []coreData
@@ -333,7 +340,8 @@ func partitionByRowCriteria(d []coreData, rc []rowCriteria) []coreData {
 		var b = true
 		// check that each row criteria value matches
 		for _, k := range rc {
-			if !(criteria(each.xi[k.r], k.c)) {
+			// k.r is the x index
+			if !(criteria(k.r, each.xi[k.r], k.c)) {
 				b = false
 				break
 			}
@@ -557,7 +565,19 @@ func NormalConfidenceInterval(nums []float64) (lower float64, upper float64) {
 func fullOneLevel() [][]rowCriteria {
 	var r [][]rowCriteria
 
-	for x := 0; x < 40; x++ {
+	for x := 0; x < 20; x++ {
+		// for each criteria
+		for cr := 0; cr < minCriteria; cr++ {
+			var v []rowCriteria
+			var k rowCriteria
+			k.r = x
+			k.c = cr
+			v = append(v, k)
+			r = append(r, v)
+		}
+	}
+
+	for x := 20; x < 40; x++ {
 		// for each criteria
 		for cr := 0; cr < maxCriteria; cr++ {
 			var v []rowCriteria
@@ -829,7 +849,7 @@ func main() {
 	levelOne = fullOneLevel()
 
 	//levels = fullTwoLevel()
-	//outputRowCriteria(levels)
+	outputRowCriteria(levels)
 
 	// experiment variables
 	rand_numSets = 75000
@@ -838,8 +858,8 @@ func main() {
 
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
-		rand_numSets += 0
-		rand_maxSetMembers += 25000
+		rand_numSets += 25000
+		rand_maxSetMembers += 0
 
 		// Setup experiment variables
 		var scores []scoreResult
