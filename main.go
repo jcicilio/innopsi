@@ -522,13 +522,16 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 
 	var St2 = St * St
 	var Sc2 = Sc * Sc
-	var Ntm1 = float64(Nt - 1)
-	var Ncm1 = float64(Nc - 1)
-	var kt = Ntm1 * St2
-	var kc = Ncm1 * Sc2
-	var ksum = kt + kc
-	var Nsum = Nt + Nc
-	var sPooled = math.Sqrt(ksum / Nsum)
+	//var Ntm1 = float64(Nt - 1)
+	//var Ncm1 = float64(Nc - 1)
+	//var kt = Ntm1 * St2
+	//var kc = Ncm1 * Sc2
+	//var ksum = kt + kc
+	//var Nsum = Nt + Nc
+	//var sPooled = math.Sqrt(ksum / Nsum)
+
+	//http://www.uccs.edu/~lbecker/
+	var sPooled = math.Sqrt((St2 + Sc2) / 2)
 
 	s.t0 = t0
 	s.t1 = t1
@@ -545,7 +548,9 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	//s.score = meanDifference / meanAll
 	//var max, _ = stats.Max(allTs)
 
-	s.score = meanDifference / sPooled
+	//s.score = meanDifference / sPooled
+	var cohensd = meanDifference / sPooled
+	s.score = cohensd / math.Sqrt(cohensd*cohensd+4.0)
 
 	//	if math.Abs(s.score) >= 1.0 {
 	//		s.score = 0
@@ -860,14 +865,14 @@ func main() {
 	outputRowCriteria(levels)
 
 	// experiment variables
-	rand_numSets = 100000
-	rand_maxSetMembers = 12
+	rand_numSets = 150000
+	rand_maxSetMembers = 10
 	maxExperiments = 1
 
 	var expMin []float64
 	var expMax []float64
 	expMin10 = 0.0
-	var percentRofMin float64 = 1.0
+	var percentRofMin float64 = 0.0
 
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
