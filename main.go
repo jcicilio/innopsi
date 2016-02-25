@@ -58,13 +58,13 @@ const subjects int = 240
 const minCriteria = 6
 const maxCriteria = 6
 
-//const datasets int = 1200
+const datasets int = 1200
 
-const datasets int = 4
+///const datasets int = 4
 
-//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
+const datafilename string = "./data/InnoCentive_9933623_Data.csv"
 
-const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
+//const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
 	data               []coreData
@@ -381,13 +381,14 @@ func outputResults(s []scoreResult) {
 	for row := 0; row < subjects; row++ {
 		for col := 0; col < datasets; col++ {
 
-			pv = resultsArray(s[col].t1)
+			pv = resultsArray(s[col].t1, s[col])
 			// with the scores for individuals
 			for sub := 0; sub < subjects; sub++ {
 
 				dataSet[sub][col+1] = pv[sub]
-
-				//dataSet[sub][1] = 0
+				//				if s[col].reject {
+				//					dataSet[sub][1] = 0
+				//				}
 
 			}
 		}
@@ -433,13 +434,18 @@ func outputResults(s []scoreResult) {
 
 // Convert a sparse list of subject Id in a t1 array into a binary vector
 // of 0 / 1 for each subject that matches
-func resultsArray(positive []coreData) []int {
+func resultsArray(positive []coreData, s scoreResult) []int {
 	var r []int
 
 	// first add all zero values
 	for row := 0; row < subjects; row++ {
 		r = append(r, 0)
 	}
+
+	//	// marked as rejected, don't include values in results
+	//	if s.reject {
+	//		return r
+	//	}
 
 	// create row vector
 	for _, each := range positive {
@@ -852,22 +858,23 @@ func main() {
 	outputRowCriteria(levels)
 
 	// experiment variables
-	rand_numSets = 1000
-	rand_maxSetMembers = 9
-	maxExperiments = 3
+	rand_numSets = 150000
+	rand_maxSetMembers = 12
+	maxExperiments = 1
 
 	var expMin []float64
 	var expMax []float64
+	//var expMin10 float64
 
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
 		rand_numSets += 0
-		rand_maxSetMembers += 1
+		rand_maxSetMembers += 0
 
 		// Setup experiment variables
 		var scores []scoreResult
-		var minScore float64 = 0
-		var maxScore float64
+		var minScore float64 = -100
+		var maxScore float64 = 0
 		levels = randLevels()
 		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d\n", len(levels), rand_maxSetMembers+2, len(levelOne))
 
@@ -898,12 +905,22 @@ func main() {
 		expMin = append(expMin, minScore)
 		expMax = append(expMax, maxScore)
 
+		//		expMin10 = (minScore / 10.0) + minScore
+		//		fmt.Printf("%f \n", expMin10)
+		//		// Mark bottom n percent scores at noscore
+		//		for _, each := range scores {
+		//			each.reject = false
+		//			if each.score < expMin10 {
+		//				each.reject = true
+		//			}
+		//		}
+
 		outputScores(scores)
 		// Write output file
 		outputResults(scores)
 
 		// Compare to training truth data
-		//compareTrainingDataWithResults()
+		// compareTrainingDataWithResults()
 	}
 
 	t = time.Now()
