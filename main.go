@@ -36,6 +36,7 @@ type scoreResult struct {
 	rc        []rowCriteria
 	t0        []coreData
 	t1        []coreData
+	rejected  bool
 }
 
 type confInterval struct {
@@ -58,13 +59,13 @@ const subjects int = 240
 const minCriteria = 6
 const maxCriteria = 6
 
-const datasets int = 1200
+//const datasets int = 1200
 
-///const datasets int = 4
+const datasets int = 4
 
-const datafilename string = "./data/InnoCentive_9933623_Data.csv"
+//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
 
-//const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
+const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
 	data               []coreData
@@ -75,6 +76,7 @@ var (
 	maxExperiments     int = 1
 	filename           string
 	rowThreshhold      int = 6
+	expMin10           float64
 )
 
 // Sorting interface implementation for scoreResults
@@ -189,8 +191,8 @@ func outputScore(s scoreResult) {
 	for _, each := range s.rc {
 		fmt.Printf("x=%d, c=%d, ", each.r+1, each.c)
 	}
-	fmt.Println()
 
+	fmt.Printf("rejected: %t \n", rejected(s))
 }
 
 func outputScores(s []scoreResult) {
@@ -386,10 +388,11 @@ func outputResults(s []scoreResult) {
 			for sub := 0; sub < subjects; sub++ {
 
 				dataSet[sub][col+1] = pv[sub]
-				//				if s[col].reject {
-				//					dataSet[sub][1] = 0
-				//				}
 
+				// If output is less then expMin
+				if rejected(s[col]) {
+					dataSet[sub][col+1] = 0
+				}
 			}
 		}
 	}
@@ -442,11 +445,6 @@ func resultsArray(positive []coreData, s scoreResult) []int {
 		r = append(r, 0)
 	}
 
-	//	// marked as rejected, don't include values in results
-	//	if s.reject {
-	//		return r
-	//	}
-
 	// create row vector
 	for _, each := range positive {
 		r[each.id-1] = 1
@@ -455,6 +453,10 @@ func resultsArray(positive []coreData, s scoreResult) []int {
 	//fmt.Printf("positive: %d", len(positive))
 
 	return r
+}
+
+func rejected(s scoreResult) bool {
+	return s.score > expMin10
 }
 
 // for a partition in the set of data, calculate the effective treatement
@@ -858,18 +860,20 @@ func main() {
 	outputRowCriteria(levels)
 
 	// experiment variables
-	rand_numSets = 150000
+	rand_numSets = 100000
 	rand_maxSetMembers = 12
 	maxExperiments = 1
 
 	var expMin []float64
 	var expMax []float64
-	//var expMin10 float64
+	expMin10 = 0.0
+	var percentRofMin float64 = 1.0
 
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
 		rand_numSets += 0
 		rand_maxSetMembers += 0
+		expMin10 = 0.0
 
 		// Setup experiment variables
 		var scores []scoreResult
@@ -905,22 +909,15 @@ func main() {
 		expMin = append(expMin, minScore)
 		expMax = append(expMax, maxScore)
 
-		//		expMin10 = (minScore / 10.0) + minScore
-		//		fmt.Printf("%f \n", expMin10)
-		//		// Mark bottom n percent scores at noscore
-		//		for _, each := range scores {
-		//			each.reject = false
-		//			if each.score < expMin10 {
-		//				each.reject = true
-		//			}
-		//		}
+		expMin10 = (minScore * (percentRofMin / 100.0)) + minScore
+		fmt.Printf(" expMin10: %f \n", expMin10)
 
 		outputScores(scores)
 		// Write output file
 		outputResults(scores)
 
 		// Compare to training truth data
-		// compareTrainingDataWithResults()
+		compareTrainingDataWithResults()
 	}
 
 	t = time.Now()
