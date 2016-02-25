@@ -56,15 +56,15 @@ type confInterval2 struct {
 
 const subjects int = 240
 const minCriteria = 6
-const maxCriteria = 30
+const maxCriteria = 6
 
-const datasets int = 1200
+//const datasets int = 1200
 
-//const datasets int = 4
+const datasets int = 4
 
-const datafilename string = "./data/InnoCentive_9933623_Data.csv"
+//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
 
-//const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
+const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
 	data               []coreData
@@ -852,19 +852,24 @@ func main() {
 	outputRowCriteria(levels)
 
 	// experiment variables
-	rand_numSets = 75000
-	rand_maxSetMembers = 11
-	maxExperiments = 2
+	rand_numSets = 1000
+	rand_maxSetMembers = 9
+	maxExperiments = 3
+
+	var expMin []float64
+	var expMax []float64
 
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
-		rand_numSets += 25000
-		rand_maxSetMembers += 0
+		rand_numSets += 0
+		rand_maxSetMembers += 1
 
 		// Setup experiment variables
 		var scores []scoreResult
+		var minScore float64 = 0
+		var maxScore float64
 		levels = randLevels()
-		fmt.Printf("sets count: %d, max set members: %d \n", len(levels), rand_maxSetMembers+2)
+		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d\n", len(levels), rand_maxSetMembers+2, len(levelOne))
 
 		for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
 			s := levelEval(dataSetId)
@@ -880,8 +885,18 @@ func main() {
 				var sEval = s[0]
 				scores = append(scores, sEval)
 				fmt.Printf("%d, %f \n", sEval.dataSetId, sEval.score)
+
+				if minScore < sEval.score {
+					minScore = sEval.score
+				}
+				if maxScore > sEval.score {
+					maxScore = sEval.score
+				}
 			}
 		}
+
+		expMin = append(expMin, minScore)
+		expMax = append(expMax, maxScore)
 
 		outputScores(scores)
 		// Write output file
@@ -894,4 +909,12 @@ func main() {
 	t = time.Now()
 	fmt.Println(t.Format(time.RFC3339))
 
+	// Output min max scores per experiment
+	for _, each := range expMin {
+		fmt.Printf("min: %f, ", each)
+	}
+	fmt.Println()
+	for _, each := range expMax {
+		fmt.Printf("max: %f, ", each)
+	}
 }
