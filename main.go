@@ -59,13 +59,13 @@ const subjects int = 240
 const minCriteria = 6
 const maxCriteria = 6
 
-//const datasets int = 1200
+const datasets int = 1200
 
-const datasets int = 4
+//const datasets int = 4
 
-//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
+const datafilename string = "./data/InnoCentive_9933623_Data.csv"
 
-const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
+//const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
 	data               []coreData
@@ -75,8 +75,8 @@ var (
 	rand_maxSetMembers int = 9
 	maxExperiments     int = 1
 	filename           string
-	rowThreshhold      int = 6
-	expMin10           float64
+	rowThreshhold      int
+	scoreCutoff        float64
 )
 
 // Sorting interface implementation for scoreResults
@@ -312,11 +312,13 @@ func criteriaL(v int, c int) bool {
 }
 
 func criteria(x, v, c int) bool {
-	if x < 20 {
-		return criteriaL(v, c)
-	}
 
-	return criteriaH(v, c)
+	//	if x < 20 {
+	//		return criteriaL(v, c)
+	//	}
+
+	//	return criteriaH(v, c)
+	return criteriaL(v, c)
 }
 
 // Get a partition of the dataset
@@ -456,7 +458,7 @@ func resultsArray(positive []coreData, s scoreResult) []int {
 }
 
 func rejected(s scoreResult) bool {
-	return s.score > expMin10
+	return s.score > scoreCutoff
 }
 
 // for a partition in the set of data, calculate the effective treatement
@@ -865,27 +867,28 @@ func main() {
 	outputRowCriteria(levels)
 
 	// experiment variables
-	rand_numSets = 150000
+	rand_numSets = 100000
 	rand_maxSetMembers = 10
-	maxExperiments = 1
+	maxExperiments = 3
 
 	var expMin []float64
 	var expMax []float64
-	expMin10 = 0.0
-	var percentRofMin float64 = 0.0
+	scoreCutoff = -0.5
+	//var percentRofMin float64 = 0.0
+	rowThreshhold = 4
 
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
 		rand_numSets += 0
 		rand_maxSetMembers += 0
-		expMin10 = 0.0
+		scoreCutoff += -0.1
 
 		// Setup experiment variables
 		var scores []scoreResult
 		var minScore float64 = -100
 		var maxScore float64 = 0
 		levels = randLevels()
-		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d\n", len(levels), rand_maxSetMembers+2, len(levelOne))
+		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, rowThreshhold: %d, scoreCutoff: %f\n", len(levels), rand_maxSetMembers+2, len(levelOne), rowThreshhold, scoreCutoff)
 
 		for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
 			s := levelEval(dataSetId)
@@ -914,15 +917,15 @@ func main() {
 		expMin = append(expMin, minScore)
 		expMax = append(expMax, maxScore)
 
-		expMin10 = (minScore * (percentRofMin / 100.0)) + minScore
-		fmt.Printf(" expMin10: %f \n", expMin10)
+		//scoreCutoff = (minScore * (percentRofMin / 100.0)) + minScore
+		//fmt.Printf(" scoreCutoff: %f \n", scoreCutoff)
 
 		outputScores(scores)
 		// Write output file
 		outputResults(scores)
 
 		// Compare to training truth data
-		compareTrainingDataWithResults()
+		// compareTrainingDataWithResults()
 	}
 
 	t = time.Now()
