@@ -775,7 +775,8 @@ func compareTrainingDataWithResults() {
 func calculateConfidenceInterval2(nt, nc, mt, mc, sdt, sdc float64) confInterval2 {
 
 	var ci confInterval2
-	var z = 1.96 // http://www.dummies.com/how-to/content/creating-a-confidence-interval-for-the-difference-.html
+	//var z = 1.96 // http://www.dummies.com/how-to/content/creating-a-confidence-interval-for-the-difference-.html
+	var z = 2.58 // http://www.dummies.com/how-to/content/creating-a-confidence-interval-for-the-difference-.html
 
 	ci.t1min = mt - z*(sdt/math.Sqrt(nt))
 	ci.t0min = mc - z*(sdt/math.Sqrt(nc))
@@ -876,7 +877,7 @@ func main() {
 	var expMax []float64
 	scoreCutoff = -0.8
 	//var percentRofMin float64 = 0.0
-	rowThreshhold = 4
+	rowThreshhold = 6
 
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
