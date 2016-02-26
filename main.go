@@ -552,7 +552,8 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 
 	//s.score = meanDifference / sPooled
 	var cohensd = meanDifference / sPooled
-	s.score = cohensd / math.Sqrt(cohensd*cohensd+4.0)
+	var a = ((Nt + Nc) * (Nt + Nc)) / (Nt + Nc)
+	s.score = cohensd / math.Sqrt((cohensd*cohensd)+a)
 
 	//	if math.Abs(s.score) >= 1.0 {
 	//		s.score = 0
@@ -868,12 +869,12 @@ func main() {
 
 	// experiment variables
 	rand_numSets = 100000
-	rand_maxSetMembers = 10
-	maxExperiments = 3
+	rand_maxSetMembers = 13
+	maxExperiments = 1
 
 	var expMin []float64
 	var expMax []float64
-	scoreCutoff = -0.5
+	scoreCutoff = -0.8
 	//var percentRofMin float64 = 0.0
 	rowThreshhold = 4
 
@@ -881,7 +882,7 @@ func main() {
 		// experiment variables, changes per experiment
 		rand_numSets += 0
 		rand_maxSetMembers += 0
-		scoreCutoff += -0.1
+		scoreCutoff += -0.0
 
 		// Setup experiment variables
 		var scores []scoreResult
