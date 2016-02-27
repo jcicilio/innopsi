@@ -77,6 +77,7 @@ var (
 	filename           string
 	rowThreshhold      int
 	scoreCutoff        float64
+	zScore             float64 = 2.58
 )
 
 // Sorting interface implementation for scoreResults
@@ -776,13 +777,13 @@ func calculateConfidenceInterval2(nt, nc, mt, mc, sdt, sdc float64) confInterval
 
 	var ci confInterval2
 	//var z = 1.96 // http://www.dummies.com/how-to/content/creating-a-confidence-interval-for-the-difference-.html
-	var z = 2.58 // http://www.dummies.com/how-to/content/creating-a-confidence-interval-for-the-difference-.html
+	//var z = 2.58 // http://www.dummies.com/how-to/content/creating-a-confidence-interval-for-the-difference-.html
 
-	ci.t1min = mt - z*(sdt/math.Sqrt(nt))
-	ci.t0min = mc - z*(sdt/math.Sqrt(nc))
+	ci.t1min = mt - zScore*(sdt/math.Sqrt(nt))
+	ci.t0min = mc - zScore*(sdt/math.Sqrt(nc))
 
-	ci.t1max = mt + z*(sdt/math.Sqrt(nt))
-	ci.t0max = mt + z*(sdt/math.Sqrt(nc))
+	ci.t1max = mt + zScore*(sdt/math.Sqrt(nt))
+	ci.t0max = mt + zScore*(sdt/math.Sqrt(nc))
 
 	ci.overlap = false
 
@@ -817,8 +818,9 @@ func calculateConfidenceInterval(s scoreResult) confInterval {
 	}
 
 	var ci confInterval
-	var z = 1.96 // http://www.dummies.com/how-to/content/creating-a-confidence-interval-for-the-difference-.html
+	//var z = 1.96 // http://www.dummies.com/how-to/content/creating-a-confidence-interval-for-the-difference-.html
 	//var z = 1.645 // http://www.dummies.com/how-to/content/creating-a-confidence-interval-for-the-difference-.html
+	//var z = 2.58
 
 	var m0, _ = stats.Mean(t0s)
 	var n0 = float64(len(t0s))
@@ -832,8 +834,8 @@ func calculateConfidenceInterval(s scoreResult) confInterval {
 	var sd0s = sd0 * sd0
 	var sd1s = sd1 * sd1
 
-	ci.min = mDiff - z*math.Sqrt(sd1s/n1+sd0s/n0)
-	ci.max = mDiff + z*math.Sqrt(sd1s/n1+sd0s/n0)
+	ci.min = mDiff - zScore*math.Sqrt(sd1s/n1+sd0s/n0)
+	ci.max = mDiff + zScore*math.Sqrt(sd1s/n1+sd0s/n0)
 	ci.diff = ci.min - ci.max
 
 	ci.t1Max = m1 + ci.max
@@ -870,20 +872,20 @@ func main() {
 
 	// experiment variables
 	rand_numSets = 100000
-	rand_maxSetMembers = 13
+	rand_maxSetMembers = 12
 	maxExperiments = 1
 
 	var expMin []float64
 	var expMax []float64
-	scoreCutoff = -0.8
-	//var percentRofMin float64 = 0.0
-	rowThreshhold = 6
+	scoreCutoff = -0.89
+	rowThreshhold = 2
+	zScore = 2.58
 
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
 		rand_numSets += 0
 		rand_maxSetMembers += 0
-		scoreCutoff += -0.0
+		scoreCutoff += -0.00
 
 		// Setup experiment variables
 		var scores []scoreResult
