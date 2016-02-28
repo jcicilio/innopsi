@@ -873,18 +873,19 @@ func main() {
 	// experiment variables
 	rand_numSets = 100000
 	rand_maxSetMembers = 12
-	maxExperiments = 1
+	maxExperiments = 5
 
 	var expMin []float64
 	var expMax []float64
-	scoreCutoff = -0.9965239
+	scoreCutoff = -0.987
 	rowThreshhold = 2
-	zScore = 2.58
+	zScore = 2.7
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
 		rand_numSets += 0
 		rand_maxSetMembers += 0
 		scoreCutoff += -0.00
+		zScore += .1
 
 		// Setup experiment variables
 		var scores []scoreResult
