@@ -217,4 +217,21 @@ min(d4$score)-max(d4$score)
 (min(d3$score)-max(d3$score))/sd(d3$score)
 (min(d4$score)-max(d4$score))/sd(d4$score)
 
+setwd("/Projects/GoLang/src/innopsi/R")
+
+data = read.csv("../data/range20160228.csv", header = TRUE)
+summary(data)
+sd(data$score)
+
+hist(data$score)
+v2 <-2*sd(data$score) -1
+v3<-3*sd(data$score) -1
+v4 <-4*sd(data$score) -1
+
+dk.2 <- data[data$score > v2,]
+dk.3 <- data[data$score > v3,]
+dk.4 <- data[data$score > v4,]
+# 2 sd  123 of 1200
+# 3 sd   56 of 1200
+
 

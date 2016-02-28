@@ -877,10 +877,9 @@ func main() {
 
 	var expMin []float64
 	var expMax []float64
-	scoreCutoff = -0.89
+	scoreCutoff = -0.9965239
 	rowThreshhold = 2
 	zScore = 2.58
-
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
 		rand_numSets += 0
@@ -892,7 +891,7 @@ func main() {
 		var minScore float64 = -100
 		var maxScore float64 = 0
 		levels = randLevels()
-		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, rowThreshhold: %d, scoreCutoff: %f\n", len(levels), rand_maxSetMembers+2, len(levelOne), rowThreshhold, scoreCutoff)
+		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, rowThreshhold: %d, scoreCutoff: %f, zScore: %f\n", len(levels), rand_maxSetMembers+2, len(levelOne), rowThreshhold, scoreCutoff, zScore)
 
 		for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
 			s := levelEval(dataSetId)
