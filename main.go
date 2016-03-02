@@ -57,15 +57,15 @@ type confInterval2 struct {
 
 const subjects int = 240
 const minCriteria = 6
-const maxCriteria = 6
+const maxCriteria = 30
 
-const datasets int = 1200
+//const datasets int = 1200
 
-//const datasets int = 4
+const datasets int = 4
 
-const datafilename string = "./data/InnoCentive_9933623_Data.csv"
+//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
 
-//const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
+const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
 	data               []coreData
@@ -314,12 +314,12 @@ func criteriaL(v int, c int) bool {
 
 func criteria(x, v, c int) bool {
 
-	//	if x < 20 {
-	//		return criteriaL(v, c)
-	//	}
+	if x < 20 {
+		return criteriaL(v, c)
+	}
 
-	//	return criteriaH(v, c)
-	return criteriaL(v, c)
+	return criteriaH(v, c)
+	//return criteriaL(v, c)
 }
 
 // Get a partition of the dataset
@@ -871,21 +871,21 @@ func main() {
 	outputRowCriteria(levels)
 
 	// experiment variables
-	rand_numSets = 100000
+	rand_numSets = 50000
 	rand_maxSetMembers = 12
 	maxExperiments = 5
 
 	var expMin []float64
 	var expMax []float64
-	scoreCutoff = -0.987
+	scoreCutoff = -0.89
 	rowThreshhold = 2
-	zScore = 2.7
+	zScore = 2.6
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
 		rand_numSets += 0
 		rand_maxSetMembers += 0
 		scoreCutoff += -0.00
-		zScore += .1
+		zScore += 0.0
 
 		// Setup experiment variables
 		var scores []scoreResult
@@ -916,6 +916,21 @@ func main() {
 					maxScore = sEval.score
 				}
 			}
+
+			// For all score in this set write out the median and standard deviation
+			var set []float64
+			for _, scoreItem := range s {
+				if scoreItem.score < 0.0 {
+					set = append(set, scoreItem.score)
+				}
+			}
+
+			var median, _ = stats.Median(set)
+			var sd, _ = stats.StandardDeviation(set)
+			var min, _ = stats.Min(set)
+			var max, _ = stats.Max(set)
+			fmt.Printf("dataset: %d, median: %f, sd: %f, min: %f, max: %f\n", dataSetId, median, sd, min, max)
+
 		}
 
 		expMin = append(expMin, minScore)
