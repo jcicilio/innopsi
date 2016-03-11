@@ -71,6 +71,7 @@ var (
 	data               []coreData
 	levels             [][]rowCriteria
 	levelOne           [][]rowCriteria
+	levelTwo           [][]rowCriteria
 	rand_numSets           = 1000
 	rand_maxSetMembers int = 9
 	maxExperiments     int = 1
@@ -647,22 +648,32 @@ func randLevels() [][]rowCriteria {
 	var f, r [][]rowCriteria
 	var flen int
 
-	f = levelOne
+	f = levelTwo
 	flen = len(f)
 
-	// Append single criteria
+	// Append two level // single criteria
 	for i := 0; i < len(f); i++ {
 		var v0 []rowCriteria
-		var vi rowCriteria
+		var vi, vj rowCriteria
 		vi.c = f[i][0].c
 		vi.r = f[i][0].r
 		v0 = append(v0, vi)
+
+		if len(f[i]) == 2 {
+			vj.c = f[i][1].c
+			vj.r = f[i][1].r
+			v0 = append(v0, vj)
+		}
+
 		r = append(r, v0)
 	}
 
+	// Reset seed
+	rand.Seed(1)
+
 	for i := 0; i < rand_numSets; i++ {
 		var s []rowCriteria
-		var sets = rand.Intn(rand_maxSetMembers) + 2
+		var sets = rand.Intn(rand_maxSetMembers) + 3
 		for j := 0; j < sets; j++ {
 			var random = rand.Intn(flen)
 
@@ -694,7 +705,9 @@ func levelEval(dataSetId int) []scoreResult {
 		t := partitionByRowCriteria(d, src1)
 		//fmt.Printf("number of rows: %d \n", len(t))
 		s := evalScore(t, src1, dataSetId)
-		r = append(r, s)
+		if s.score < 0.0 {
+			r = append(r, s)
+		}
 	}
 
 	return r
@@ -866,33 +879,34 @@ func main() {
 	// Set one level with all row criteria,
 	// this is used to start the set creation
 	levelOne = fullOneLevel()
+	levelTwo = fullTwoLevel()
 
 	//levels = fullTwoLevel()
 	outputRowCriteria(levels)
 
 	// experiment variables
-	rand_numSets = 100000
-	rand_maxSetMembers = 12
-	maxExperiments = 5
+	rand_numSets = 1000000
+	rand_maxSetMembers = 0 // Always 2 more eg: 1, is three set member limit
+	maxExperiments = 10
 
 	var expMin []float64
 	var expMax []float64
-	scoreCutoff = -0.987
+	scoreCutoff = -0.888
 	rowThreshhold = 2
-	zScore = 2.7
+	zScore = 2.58
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
 		rand_numSets += 0
-		rand_maxSetMembers += 0
+		rand_maxSetMembers += 1
 		scoreCutoff += -0.00
-		zScore += .1
+		zScore += 0.0
 
 		// Setup experiment variables
 		var scores []scoreResult
 		var minScore float64 = -100
 		var maxScore float64 = 0
 		levels = randLevels()
-		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, rowThreshhold: %d, scoreCutoff: %f, zScore: %f\n", len(levels), rand_maxSetMembers+2, len(levelOne), rowThreshhold, scoreCutoff, zScore)
+		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, level 2 count: %d, rowThreshhold: %d, scoreCutoff: %f, zScore: %f\n", len(levels), rand_maxSetMembers+2, len(levelOne), len(levelTwo), rowThreshhold, scoreCutoff, zScore)
 
 		for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
 			s := levelEval(dataSetId)
