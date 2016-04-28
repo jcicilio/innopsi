@@ -9,9 +9,102 @@ max(data.testing)
 str(data.testing)
 summary(data.testing)
 
+d1 <- subset(data.testing, dataset==1)
+d1.d.1 <- d1[d1$trt==1,]
+d1.d.0 <- d1[d1$trt==0,]
+summary(d1.d.1$y)
+summary(d1.d.0$y)
+hist(d1.d.1$y)
+hist(d1.d.0$y)
+
+d2 <- subset(data.testing, dataset==2)
+d2.d.1 <- d2[d2$trt==1,]
+d2.d.0 <- d2[d2$trt==0,]
+summary(d2.d.1$y)
+summary(d2.d.0$y)
+hist(d2.d.1$y)
+hist(d2.d.0$y)
+
+d3 <- subset(data.testing, dataset==3)
+d3.d.1 <- d3[d3$trt==1,]
+d3.d.0 <- d3[d3$trt==0,]
+summary(d3.d.1$y)
+summary(d3.d.0$y)
+hist(d3.d.1$y)
+hist(d3.d.0$y)
+
+
+d4 <- subset(data.testing, dataset==4)
+d4.d.1 <- d4[d4$trt==1,]
+d4.d.0 <- d4[d4$trt==0,]
+summary(d4.d.1$y)
+summary(d4.d.0$y)
+hist(d4.d.1$y)
+hist(d4.d.0$y)
+
+
+
+
 
 d1 <- subset(data.testing, dataset==1)
 summary(d1)
+
+d1.d <- d1[d1$x29<51.3,]
+d1.d.1 <- d1.d[d1.d$trt==1,]
+d1.d.0 <- d1.d[d1.d$trt==0,]
+
+summary(d1.d.1$y)
+summary(d1.d.0$y)
+
+t.test(d1.d.1$y, d1.d.0$y)
+
+
+d2 <- subset(data.testing, dataset==2)
+summary(d2)
+
+d2.d <- d2[d2$x29<51.3,]
+d2.d.1 <- d2.d[d2.d$trt==1,]
+d2.d.0 <- d2.d[d2.d$trt==0,]
+
+summary(d2.d.1$y)
+summary(d2.d.0$y)
+t.test(d2.d.1$y, d2.d.0$y)
+
+d3 <- subset(data.testing, dataset==3)
+summary(d3)
+
+d3.d <- d3[d3$x5==1 | d3$x5==2,]
+d3.d.1 <- d3.d[d3.d$trt==1,]
+d3.d.0 <- d3.d[d3.d$trt==0,]
+
+t.test(d3.d.1$y, d3.d.0$y)
+summary(d3.d.1$y)
+summary(d3.d.0$y)
+
+
+
+d4 <- subset(data.testing, dataset==4)
+summary(d4)
+
+d4.d <- d4[(d4$x4==1 | d4$x4==2) & d4$x22>57.7,]
+d4.d.1 <- d4.d[d4.d$trt==1,]
+d4.d.0 <- d4.d[d4.d$trt==0,]
+
+t.test(d4.d.1$y, d4.d.0$y)
+
+summary(d4.d.1$y)
+summary(d4.d.0$y)
+
+
+
+
+
+
+
+
+
+
+
 
 # Take all subsets of x1 through 20
 # create a dataset of all subsets 6 levels 20 rows 120 subsets, and evaluate them
