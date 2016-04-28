@@ -59,13 +59,13 @@ const subjects int = 240
 const minCriteria = 6
 const maxCriteria = 6
 
-//const datasets int = 1200
+// Testing
+const datasets int = 1200
+const datafilename string = "./data/InnoCentive_9933623_Data.csv"
 
-const datasets int = 4
-
-//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
-
-const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
+// Sample
+//const datasets int = 4
+//const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
 
 var (
 	data               []coreData
@@ -194,6 +194,7 @@ func outputScore(s scoreResult) {
 		fmt.Printf("x=%d, c=%d, ", each.r+1, each.c)
 	}
 
+	fmt.Printf("members: %d, %d ", len(s.t0), len(s.t1))
 	fmt.Printf("rejected: %t \n", rejected(s))
 }
 
@@ -627,19 +628,19 @@ func fullTwoLevel() [][]rowCriteria {
 	}
 
 	// Append two level criteria
-	//	for i := 0; i < len(f); i++ {
-	//		for j := i + 1; j < len(f); j++ {
-	//			var v0 []rowCriteria
-	//			var vi, vj rowCriteria
-	//			vi.c = f[i][0].c
-	//			vi.r = f[i][0].r
-	//			vj.c = f[j][0].c
-	//			vj.r = f[j][0].r
-	//			v0 = append(v0, vi)
-	//			v0 = append(v0, vj)
-	//			r = append(r, v0)
-	//		}
-	//	}
+	for i := 0; i < len(f); i++ {
+		for j := i + 1; j < len(f); j++ {
+			var v0 []rowCriteria
+			var vi, vj rowCriteria
+			vi.c = f[i][0].c
+			vi.r = f[i][0].r
+			vj.c = f[j][0].c
+			vj.r = f[j][0].r
+			v0 = append(v0, vi)
+			v0 = append(v0, vj)
+			r = append(r, v0)
+		}
+	}
 
 	return r
 }
@@ -762,6 +763,7 @@ func levelEval(dataSetId int) []scoreResult {
 		}
 	}
 
+	r = append(r, bestScore)
 	return r
 }
 
@@ -932,20 +934,21 @@ func main() {
 	// this is used to start the set creation
 	levelOne = fullOneLevel()
 	levelTwo = fullTwoLevel()
+	var levelThree = fullThreeLevel()
 
 	//levels = fullTwoLevel()
 	outputRowCriteria(levels)
 
 	// experiment variables
-	rand_numSets = 10000
-	rand_maxSetMembers = 0 // Always 2 more eg: 1, is three set member limit
+	rand_numSets = 50000
+	rand_maxSetMembers = 4 // Always 2 more eg: 1, is three set member limit
 	maxExperiments = 1
 
 	var expMin []float64
 	var expMax []float64
 	scoreCutoff = -0.0
-	rowThreshhold = 2
-	zScore = 2.20
+	rowThreshhold = 1
+	zScore = 2.58
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
 		rand_numSets += 0
@@ -957,8 +960,8 @@ func main() {
 		var scores []scoreResult
 		var minScore float64 = -100
 		var maxScore float64 = 0
-		levels = fullTwoLevel() // randLevels()
-		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, level 2 count: %d, rowThreshhold: %d, scoreCutoff: %f, zScore: %f\n", len(levels), rand_maxSetMembers+2, len(levelOne), len(levelTwo), rowThreshhold, scoreCutoff, zScore)
+		levels = levelThree //randLevels()
+		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, level 2 count: %d, rowThreshhold: %d, scoreCutoff: %f, zScore: %f, exp %d of %d\n", len(levels), rand_maxSetMembers+2, len(levelOne), len(levelTwo), rowThreshhold, scoreCutoff, zScore, experiment, maxExperiments)
 
 		for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
 			s := levelEval(dataSetId)
@@ -968,20 +971,20 @@ func main() {
 			// this is were we can get some info on that data
 			//outputScoreList(s)
 
-			if len(s) > 0 {
-				//var sEval = evaluateScores(s)
-				// pick the top score
-				var sEval = s[0]
-				scores = append(scores, sEval)
-				fmt.Printf("%d, %.10f, relevant criteria: %d \n", sEval.dataSetId, sEval.score, len(s))
+			//if len(s) > 0 {
+			//var sEval = evaluateScores(s)
+			// pick the top score
+			var sEval = s[0]
+			scores = append(scores, sEval)
+			fmt.Printf("%d, %.10f, relevant criteria: %d, members: %d, %d \n", sEval.dataSetId, sEval.score, len(s), len(sEval.t0), len(sEval.t1))
 
-				if minScore < sEval.score {
-					minScore = sEval.score
-				}
-				if maxScore > sEval.score {
-					maxScore = sEval.score
-				}
+			if minScore < sEval.score {
+				minScore = sEval.score
 			}
+			if maxScore > sEval.score {
+				maxScore = sEval.score
+			}
+			//}
 		}
 
 		expMin = append(expMin, minScore)
