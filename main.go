@@ -57,20 +57,19 @@ type confInterval2 struct {
 
 const subjects int = 240
 const minCriteria = 6
-const maxCriteria = 30
+const maxCriteria = 6
 
+// Testing
 //const datasets int = 1200
 
-const datasets int = 4
-
-//const datafilename string = "./data/InnoCentive_9933623_Data.csv"
-
-const datafilename string = "./data/InnoCentive_9933623_Training_Data.csv"
+// Sample
+//const datasets int = 4
 
 var (
 	data               []coreData
 	levels             [][]rowCriteria
 	levelOne           [][]rowCriteria
+	levelTwo           [][]rowCriteria
 	rand_numSets           = 1000
 	rand_maxSetMembers int = 9
 	maxExperiments     int = 1
@@ -78,6 +77,9 @@ var (
 	rowThreshhold      int
 	scoreCutoff        float64
 	zScore             float64 = 2.58
+	datafilename       string
+	datasets           int
+	debug              bool = true
 )
 
 // Sorting interface implementation for scoreResults
@@ -188,11 +190,12 @@ func outputScore(s scoreResult) {
 	//	return
 	//}
 
-	fmt.Printf("%d, %f, ", s.dataSetId, s.score)
+	fmt.Printf("%d, %.10f, ", s.dataSetId, s.score)
 	for _, each := range s.rc {
 		fmt.Printf("x=%d, c=%d, ", each.r+1, each.c)
 	}
 
+	fmt.Printf("members: %d, %d ", len(s.t0), len(s.t1))
 	fmt.Printf("rejected: %t \n", rejected(s))
 }
 
@@ -314,12 +317,12 @@ func criteriaL(v int, c int) bool {
 
 func criteria(x, v, c int) bool {
 
-	if x < 20 {
-		return criteriaL(v, c)
-	}
+	//	if x < 20 {
+	//		return criteriaL(v, c)
+	//	}
 
-	return criteriaH(v, c)
-	//return criteriaL(v, c)
+	//	return criteriaH(v, c)
+	return criteriaL(v, c)
 }
 
 // Get a partition of the dataset
@@ -365,6 +368,7 @@ func partitionByRowCriteria(d []coreData, rc []rowCriteria) []coreData {
 	return r
 }
 
+// output the matching data to FILE
 func outputResults(s []scoreResult) {
 	var zeroVector, pv []int
 	// first add all zero values
@@ -372,7 +376,11 @@ func outputResults(s []scoreResult) {
 		zeroVector = append(zeroVector, 0)
 	}
 	// Add one column for the id
-	var dataSet [subjects][datasets + 1]int
+	//var dataSet [subjects][datasets + 1]int
+	var dataSet = make([][]int, subjects)
+	for i := 0; i < subjects; i++ {
+		dataSet[i] = make([]int, datasets+1)
+	}
 
 	// Write headings, id, dataset_1 through n
 	// Write ids
@@ -497,7 +505,7 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 		}
 	}
 
-	if len(t0) <= rowThreshhold/2 || len(t1) <= rowThreshhold/2 {
+	if len(t0)+len(t1) < rowThreshhold {
 		return s
 	}
 
@@ -554,11 +562,12 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 	//s.score = meanDifference / sPooled
 	var cohensd = meanDifference / sPooled
 	var a = ((Nt + Nc) * (Nt + Nc)) / (Nt + Nc)
-	s.score = cohensd / math.Sqrt((cohensd*cohensd)+a)
 
-	//	if math.Abs(s.score) >= 1.0 {
-	//		s.score = 0
-	//	}
+	// Score type 5
+	s.score = cohensd / math.Sqrt((cohensd*cohensd)+4)
+
+	// Score type 6
+	s.score = cohensd / math.Sqrt((cohensd*cohensd)+a)
 
 	//s.score = (mean1/St - mean0/Sc) / St
 
@@ -643,6 +652,120 @@ func fullTwoLevel() [][]rowCriteria {
 	return r
 }
 
+func fullThreeLevel() [][]rowCriteria {
+	var f, r [][]rowCriteria
+
+	f = levelOne
+
+	// Append single criteria
+	for i := 0; i < len(f); i++ {
+		var v0 []rowCriteria
+		var vi rowCriteria
+		vi.c = f[i][0].c
+		vi.r = f[i][0].r
+		v0 = append(v0, vi)
+		r = append(r, v0)
+	}
+
+	// Append two level criteria
+	for i := 0; i < len(f); i++ {
+		for j := i + 1; j < len(f); j++ {
+			var v0 []rowCriteria
+			var vi, vj rowCriteria
+			vi.c = f[i][0].c
+			vi.r = f[i][0].r
+			vj.c = f[j][0].c
+			vj.r = f[j][0].r
+			v0 = append(v0, vi)
+			v0 = append(v0, vj)
+			r = append(r, v0)
+
+			for k := j + 1; k < len(f); k++ {
+				var v0 []rowCriteria
+				var vi, vj, vk rowCriteria
+				vi.c = f[i][0].c
+				vi.r = f[i][0].r
+				vj.c = f[j][0].c
+				vj.r = f[j][0].r
+				vk.c = f[k][0].c
+				vk.r = f[k][0].r
+				v0 = append(v0, vi)
+				v0 = append(v0, vj)
+				v0 = append(v0, vk)
+				r = append(r, v0)
+			}
+		}
+	}
+
+	return r
+}
+
+func fullFourLevel() [][]rowCriteria {
+	var f, r [][]rowCriteria
+
+	f = levelOne
+
+	// Append single criteria
+	for i := 0; i < len(f); i++ {
+		var v0 []rowCriteria
+		var vi rowCriteria
+		vi.c = f[i][0].c
+		vi.r = f[i][0].r
+		v0 = append(v0, vi)
+		r = append(r, v0)
+	}
+
+	// Append two level criteria
+	for i := 0; i < len(f); i++ {
+		for j := i + 1; j < len(f); j++ {
+			var v0 []rowCriteria
+			var vi, vj rowCriteria
+			vi.c = f[i][0].c
+			vi.r = f[i][0].r
+			vj.c = f[j][0].c
+			vj.r = f[j][0].r
+			v0 = append(v0, vi)
+			v0 = append(v0, vj)
+			r = append(r, v0)
+
+			for k := j + 1; k < len(f); k++ {
+				var v0 []rowCriteria
+				var vi, vj, vk rowCriteria
+				vi.c = f[i][0].c
+				vi.r = f[i][0].r
+				vj.c = f[j][0].c
+				vj.r = f[j][0].r
+				vk.c = f[k][0].c
+				vk.r = f[k][0].r
+				v0 = append(v0, vi)
+				v0 = append(v0, vj)
+				v0 = append(v0, vk)
+				r = append(r, v0)
+
+				for l := k + 1; l < len(f); l++ {
+					var v0 []rowCriteria
+					var vi, vj, vk, vl rowCriteria
+					vi.c = f[i][0].c
+					vi.r = f[i][0].r
+					vj.c = f[j][0].c
+					vj.r = f[j][0].r
+					vk.c = f[k][0].c
+					vk.r = f[k][0].r
+					vl.c = f[l][0].c
+					vl.r = f[l][0].r
+					v0 = append(v0, vi)
+					v0 = append(v0, vj)
+					v0 = append(v0, vk)
+					v0 = append(v0, vl)
+					r = append(r, v0)
+				}
+			}
+		}
+	}
+
+	return r
+}
+
 func randLevels() [][]rowCriteria {
 	var f, r [][]rowCriteria
 	var flen int
@@ -681,8 +804,12 @@ func randLevels() [][]rowCriteria {
 // run the testing
 func levelEval(dataSetId int) []scoreResult {
 	var (
-		r []scoreResult
+		r         []scoreResult
+		bestScore scoreResult
 	)
+
+	// Save the dataset id for future reference
+	bestScore.dataSetId = dataSetId
 
 	// Get the partition to work on
 	d := partitionByDataset(dataSetId)
@@ -692,10 +819,17 @@ func levelEval(dataSetId int) []scoreResult {
 
 	for _, src1 := range src {
 		t := partitionByRowCriteria(d, src1)
-		//fmt.Printf("number of rows: %d \n", len(t))
+
 		s := evalScore(t, src1, dataSetId)
-		r = append(r, s)
+		// Keep only the best score
+		if s.score < 0 {
+			if s.score < bestScore.score {
+				bestScore = s
+			}
+		}
 	}
+
+	r = append(r, bestScore)
 
 	return r
 }
@@ -858,6 +992,14 @@ func main() {
 	t := time.Now()
 	fmt.Println(t.Format(time.RFC3339))
 
+	if debug {
+		datafilename = "./data/InnoCentive_9933623_Training_Data.csv"
+		datasets = 4
+	} else {
+		datafilename = "./data/InnoCentive_9933623_Data.csv"
+		datasets = 1200
+	}
+
 	rand.Seed(1)
 
 	// Read in data
@@ -866,20 +1008,22 @@ func main() {
 	// Set one level with all row criteria,
 	// this is used to start the set creation
 	levelOne = fullOneLevel()
+	//levelTwo = fullTwoLevel()
+	//var levelThree = fullThreeLevel()
 
 	//levels = fullTwoLevel()
 	outputRowCriteria(levels)
 
 	// experiment variables
 	rand_numSets = 50000
-	rand_maxSetMembers = 12
-	maxExperiments = 5
+	rand_maxSetMembers = 4 // Always 2 more eg: 1, is three set member limit
+	maxExperiments = 1
 
 	var expMin []float64
 	var expMax []float64
-	scoreCutoff = -0.89
-	rowThreshhold = 2
-	zScore = 2.6
+	scoreCutoff = -0.5
+	rowThreshhold = 1
+	zScore = 2.58
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
 		rand_numSets += 0
@@ -891,8 +1035,8 @@ func main() {
 		var scores []scoreResult
 		var minScore float64 = -100
 		var maxScore float64 = 0
-		levels = randLevels()
-		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, rowThreshhold: %d, scoreCutoff: %f, zScore: %f\n", len(levels), rand_maxSetMembers+2, len(levelOne), rowThreshhold, scoreCutoff, zScore)
+		levels = levelOne //randLevels()
+		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, level 2 count: %d, rowThreshhold: %d, scoreCutoff: %f, zScore: %f, exp %d of %d\n", len(levels), rand_maxSetMembers+2, len(levelOne), len(levelTwo), rowThreshhold, scoreCutoff, zScore, experiment, maxExperiments)
 
 		for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
 			s := levelEval(dataSetId)
@@ -902,34 +1046,30 @@ func main() {
 			// this is were we can get some info on that data
 			//outputScoreList(s)
 
-			if len(s) > 0 {
-				//var sEval = evaluateScores(s)
-				// pick the top score
-				var sEval = s[0]
-				scores = append(scores, sEval)
-				fmt.Printf("%d, %f \n", sEval.dataSetId, sEval.score)
+			var sEval = s[0]
+			scores = append(scores, sEval)
+			fmt.Printf("%d, %.10f, relevant criteria: %d, members: %d, %d \n", sEval.dataSetId, sEval.score, len(s), len(sEval.t0), len(sEval.t1))
 
-				if minScore < sEval.score {
-					minScore = sEval.score
-				}
-				if maxScore > sEval.score {
-					maxScore = sEval.score
-				}
+			if minScore < sEval.score {
+				minScore = sEval.score
+			}
+			if maxScore > sEval.score {
+				maxScore = sEval.score
 			}
 
 			// For all score in this set write out the median and standard deviation
-			var set []float64
-			for _, scoreItem := range s {
-				if scoreItem.score < 0.0 {
-					set = append(set, scoreItem.score)
-				}
-			}
+			//			var set []float64
+			//			for _, scoreItem := range s {
+			//				if scoreItem.score < 0.0 {
+			//					set = append(set, scoreItem.score)
+			//				}
+			//			}
 
-			var median, _ = stats.Median(set)
-			var sd, _ = stats.StandardDeviation(set)
-			var min, _ = stats.Min(set)
-			var max, _ = stats.Max(set)
-			fmt.Printf("dataset: %d, median: %f, sd: %f, min: %f, max: %f\n", dataSetId, median, sd, min, max)
+			//			var median, _ = stats.Median(set)
+			//			var sd, _ = stats.StandardDeviation(set)
+			//			var min, _ = stats.Min(set)
+			//			var max, _ = stats.Max(set)
+			//			fmt.Printf("dataset: %d, median: %f, sd: %f, min: %f, max: %f, len: %d\n", dataSetId, median, sd, min, max, len(set))
 
 		}
 
@@ -952,10 +1092,10 @@ func main() {
 
 	// Output min max scores per experiment
 	for _, each := range expMin {
-		fmt.Printf("min: %f, ", each)
+		fmt.Printf("min: %.10f, ", each)
 	}
 	fmt.Println()
 	for _, each := range expMax {
-		fmt.Printf("max: %f, ", each)
+		fmt.Printf("max: %.10f, ", each)
 	}
 }
