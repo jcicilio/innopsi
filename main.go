@@ -1025,8 +1025,6 @@ func main() {
 	rand_maxSetMembers = 4 // Always 2 more eg: 1, is three set member limit
 	maxExperiments = 1
 
-	var expMin []float64
-	var expMax []float64
 	scoreCutoff = -0.5
 	rowThreshhold = 20
 	zScore = 2.58
@@ -1039,8 +1037,7 @@ func main() {
 
 		// Setup experiment variables
 		var scores []scoreResult
-		var minScore float64 = -100
-		var maxScore float64 = 0
+
 		levels = levelTwo //randLevels()
 		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, level 2 count: %d, rowThreshhold: %d, scoreCutoff: %f, zScore: %f, exp %d of %d\n", len(levels), rand_maxSetMembers+2, len(levelOne), len(levelTwo), rowThreshhold, scoreCutoff, zScore, experiment, maxExperiments)
 
@@ -1058,35 +1055,7 @@ func main() {
 			var sEval = s[0]
 			scores = append(scores, sEval)
 			fmt.Printf("%d, %.10f, members: %d, %d \n", sEval.dataSetId, sEval.score, len(sEval.t0), len(sEval.t1))
-
-			if minScore < sEval.score {
-				minScore = sEval.score
-			}
-			if maxScore > sEval.score {
-				maxScore = sEval.score
-			}
-
-			// For all score in this set write out the median and standard deviation
-			//			var set []float64
-			//			for _, scoreItem := range s {
-			//				if scoreItem.score < 0.0 {
-			//					set = append(set, scoreItem.score)
-			//				}
-			//			}
-
-			//			var median, _ = stats.Median(set)
-			//			var sd, _ = stats.StandardDeviation(set)
-			//			var min, _ = stats.Min(set)
-			//			var max, _ = stats.Max(set)
-			//			fmt.Printf("dataset: %d, median: %f, sd: %f, min: %f, max: %f, len: %d\n", dataSetId, median, sd, min, max, len(set))
-
 		}
-
-		expMin = append(expMin, minScore)
-		expMax = append(expMax, maxScore)
-
-		//scoreCutoff = (minScore * (percentRofMin / 100.0)) + minScore
-		//fmt.Printf(" scoreCutoff: %f \n", scoreCutoff)
 
 		outputScores(scores)
 		// Write output file
@@ -1098,13 +1067,4 @@ func main() {
 
 	t = time.Now()
 	fmt.Println(t.Format(time.RFC3339))
-
-	// Output min max scores per experiment
-	for _, each := range expMin {
-		fmt.Printf("min: %.10f, ", each)
-	}
-	fmt.Println()
-	for _, each := range expMax {
-		fmt.Printf("max: %.10f, ", each)
-	}
 }
