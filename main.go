@@ -505,7 +505,13 @@ func evalScore(d []coreData, rc []rowCriteria, dataSetId int) scoreResult {
 		}
 	}
 
+	// Must have minimum threshhold of records
 	if len(t0)+len(t1) < rowThreshhold {
+		return s
+	}
+
+	// Must have at least one in each group
+	if len(t0) == 0 || len(t1) == 0 {
 		return s
 	}
 
@@ -1008,7 +1014,7 @@ func main() {
 	// Set one level with all row criteria,
 	// this is used to start the set creation
 	levelOne = fullOneLevel()
-	//levelTwo = fullTwoLevel()
+	levelTwo = fullTwoLevel()
 	//var levelThree = fullThreeLevel()
 
 	//levels = fullTwoLevel()
@@ -1022,7 +1028,7 @@ func main() {
 	var expMin []float64
 	var expMax []float64
 	scoreCutoff = -0.5
-	rowThreshhold = 1
+	rowThreshhold = 20
 	zScore = 2.58
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
@@ -1035,11 +1041,14 @@ func main() {
 		var scores []scoreResult
 		var minScore float64 = -100
 		var maxScore float64 = 0
-		levels = levelOne //randLevels()
+		levels = levelTwo //randLevels()
 		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, level 2 count: %d, rowThreshhold: %d, scoreCutoff: %f, zScore: %f, exp %d of %d\n", len(levels), rand_maxSetMembers+2, len(levelOne), len(levelTwo), rowThreshhold, scoreCutoff, zScore, experiment, maxExperiments)
 
 		for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
+			// evaluate all combinations of subsets for this dataset
 			s := levelEval(dataSetId)
+
+			// places the minimum value (most difference) at the top
 			sort.Sort(scoreResults(s))
 
 			// s contains a list of scores for one dataset, sorted
@@ -1048,7 +1057,7 @@ func main() {
 
 			var sEval = s[0]
 			scores = append(scores, sEval)
-			fmt.Printf("%d, %.10f, relevant criteria: %d, members: %d, %d \n", sEval.dataSetId, sEval.score, len(s), len(sEval.t0), len(sEval.t1))
+			fmt.Printf("%d, %.10f, members: %d, %d \n", sEval.dataSetId, sEval.score, len(sEval.t0), len(sEval.t1))
 
 			if minScore < sEval.score {
 				minScore = sEval.score
