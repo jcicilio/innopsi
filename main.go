@@ -11,6 +11,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/montanaflynn/stats"
@@ -59,12 +60,6 @@ const subjects int = 240
 const minCriteria = 6
 const maxCriteria = 6
 
-// Testing
-//const datasets int = 1200
-
-// Sample
-//const datasets int = 4
-
 var (
 	data               []coreData
 	levels             [][]rowCriteria
@@ -79,7 +74,7 @@ var (
 	zScore             float64 = 2.58
 	datafilename       string
 	datasets           int
-	debug              bool = true
+	debug              bool = false
 )
 
 // Sorting interface implementation for scoreResults
@@ -837,6 +832,8 @@ func levelEval(dataSetId int) []scoreResult {
 
 	r = append(r, bestScore)
 
+	// Sort the results before returning them
+	sort.Sort(scoreResults(r))
 	return r
 }
 
@@ -994,6 +991,18 @@ func calculateConfidenceInterval(s scoreResult) confInterval {
 	return ci
 }
 
+func evaluateDataset(datasetId int, scores []scoreResult, wg *sync.WaitGroup) {
+	// evaluate all combinations of subsets for this dataset
+	s := levelEval(datasetId)
+
+	var sEval = s[0]
+	scores[sEval.dataSetId-1] = sEval
+
+	fmt.Printf("%d, %.10f, members: %d, %d \n", sEval.dataSetId, sEval.score, len(sEval.t0), len(sEval.t1))
+
+	wg.Done()
+}
+
 func main() {
 	t := time.Now()
 	fmt.Println(t.Format(time.RFC3339))
@@ -1025,7 +1034,7 @@ func main() {
 	rand_maxSetMembers = 4 // Always 2 more eg: 1, is three set member limit
 	maxExperiments = 1
 
-	scoreCutoff = -0.5
+	scoreCutoff = -0.1
 	rowThreshhold = 20
 	zScore = 2.58
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
@@ -1036,25 +1045,31 @@ func main() {
 		zScore += 0.0
 
 		// Setup experiment variables
-		var scores []scoreResult
+		//var scores [datasets]scoreResult
+		var scores = make([]scoreResult, datasets)
 
 		levels = levelTwo //randLevels()
 		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, level 2 count: %d, rowThreshhold: %d, scoreCutoff: %f, zScore: %f, exp %d of %d\n", len(levels), rand_maxSetMembers+2, len(levelOne), len(levelTwo), rowThreshhold, scoreCutoff, zScore, experiment, maxExperiments)
 
+		var wg sync.WaitGroup
+		// coresToUse to must divide evenly into 1200/coresToUse, without a remainder, or 4/coresToUse for debug
+		var coresToUse = 2
+		if debug {
+			coresToUse = 2
+		} else {
+			coresToUse = 20
+		}
+
+		var queued = 0
 		for dataSetId := 1; dataSetId <= datasets; dataSetId++ {
-			// evaluate all combinations of subsets for this dataset
-			s := levelEval(dataSetId)
+			wg.Add(1)
+			queued += 1
+			go evaluateDataset(dataSetId, scores, &wg)
 
-			// places the minimum value (most difference) at the top
-			sort.Sort(scoreResults(s))
-
-			// s contains a list of scores for one dataset, sorted
-			// this is were we can get some info on that data
-			//outputScoreList(s)
-
-			var sEval = s[0]
-			scores = append(scores, sEval)
-			fmt.Printf("%d, %.10f, members: %d, %d \n", sEval.dataSetId, sEval.score, len(sEval.t0), len(sEval.t1))
+			if queued == coresToUse {
+				wg.Wait()
+				queued = 0
+			}
 		}
 
 		outputScores(scores)
