@@ -1023,8 +1023,8 @@ func main() {
 	// Set one level with all row criteria,
 	// this is used to start the set creation
 	levelOne = fullOneLevel()
-	levelTwo = fullTwoLevel()
-	//var levelThree = fullThreeLevel()
+	//levelTwo = fullTwoLevel()
+	var levelThree = fullThreeLevel()
 
 	//levels = fullTwoLevel()
 	outputRowCriteria(levels)
@@ -1032,23 +1032,23 @@ func main() {
 	// experiment variables
 	rand_numSets = 50000
 	rand_maxSetMembers = 4 // Always 2 more eg: 1, is three set member limit
-	maxExperiments = 1
+	maxExperiments = 6
 
-	scoreCutoff = -0.1
+	scoreCutoff = -0.3
 	rowThreshhold = 20
 	zScore = 2.58
 	for experiment := 1; experiment <= maxExperiments; experiment++ {
 		// experiment variables, changes per experiment
 		rand_numSets += 0
 		rand_maxSetMembers += 0
-		scoreCutoff += -0.00
+		scoreCutoff += -0.10
 		zScore += 0.0
 
 		// Setup experiment variables
 		//var scores [datasets]scoreResult
 		var scores = make([]scoreResult, datasets)
 
-		levels = levelTwo //randLevels()
+		levels = levelThree //randLevels()
 		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, level 2 count: %d, rowThreshhold: %d, scoreCutoff: %f, zScore: %f, exp %d of %d\n", len(levels), rand_maxSetMembers+2, len(levelOne), len(levelTwo), rowThreshhold, scoreCutoff, zScore, experiment, maxExperiments)
 
 		var wg sync.WaitGroup
@@ -1057,7 +1057,7 @@ func main() {
 		if debug {
 			coresToUse = 2
 		} else {
-			coresToUse = 20
+			coresToUse = 30
 		}
 
 		var queued = 0
