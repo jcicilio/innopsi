@@ -1024,13 +1024,13 @@ func main() {
 	// this is used to start the set creation
 	levelOne = fullOneLevel()
 	//levelTwo = fullTwoLevel()
-	var levelThree = fullThreeLevel()
+	//var levelThree = fullThreeLevel()
 
 	//levels = fullTwoLevel()
 	outputRowCriteria(levels)
 
 	// experiment variables
-	rand_numSets = 50000
+	rand_numSets = 500000
 	rand_maxSetMembers = 4 // Always 2 more eg: 1, is three set member limit
 	maxExperiments = 6
 
@@ -1048,7 +1048,7 @@ func main() {
 		//var scores [datasets]scoreResult
 		var scores = make([]scoreResult, datasets)
 
-		levels = levelThree //randLevels()
+		levels = randLevels()
 		fmt.Printf("sets count: %d, max set members: %d, level 1 count: %d, level 2 count: %d, rowThreshhold: %d, scoreCutoff: %f, zScore: %f, exp %d of %d\n", len(levels), rand_maxSetMembers+2, len(levelOne), len(levelTwo), rowThreshhold, scoreCutoff, zScore, experiment, maxExperiments)
 
 		var wg sync.WaitGroup
